@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20261013">
+  <link rel="stylesheet" href="style.css?v=20261013_v2">
   <!-- pako.js for fast zlib compression -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
 </head>
@@ -79,33 +79,21 @@
               <span class="section-subtitle">メッセージをいつ送信するか指定します</span>
             </div>
 
-            <!-- Selected Schedule Summary Card (Real-time highlight) -->
-            <div class="schedule-summary-card" id="schedule-summary-card">
-              <div class="summary-card-badge">
+            <!-- Selected Schedule Summary Bar (Sleek Modern SaaS Style) -->
+            <div class="schedule-summary-bar" id="schedule-summary-card">
+              <div class="summary-status-badge">
                 <span class="summary-pulse-dot"></span>
                 <span class="summary-badge-text">送信予定</span>
               </div>
-              <div class="summary-card-info">
-                <div class="summary-card-main" id="summary-card-main">2026年10月13日(火) 15:00 (JST)</div>
-                <div class="summary-card-sub" id="summary-card-sub">あと 3時間後</div>
+              <div class="summary-datetime-display">
+                <span class="summary-card-main" id="summary-card-main">2026年10月13日(火) 13:00 (JST)</span>
+                <span class="summary-divider">·</span>
+                <span class="summary-card-sub" id="summary-card-sub">約 34分後</span>
               </div>
             </div>
 
             <div id="datetime-warning" class="datetime-warning" style="display: none;">
               ⚠️ 過去の日時が指定されています。未来の日時を指定してください。
-            </div>
-
-            <!-- クイック時刻プリセットバー -->
-            <div class="quick-presets-wrapper">
-              <span class="quick-presets-label">⚡ クイック選択:</span>
-              <div class="quick-presets-list">
-                <button type="button" class="preset-pill-btn" data-preset="in-30m">+30分後</button>
-                <button type="button" class="preset-pill-btn" data-preset="in-1h">+1時間後</button>
-                <button type="button" class="preset-pill-btn" data-preset="tonight">今夜 20:00</button>
-                <button type="button" class="preset-pill-btn" data-preset="tomorrow-morning">明日 朝 09:00</button>
-                <button type="button" class="preset-pill-btn" data-preset="tomorrow-noon">明日 昼 12:00</button>
-                <button type="button" class="preset-pill-btn" data-preset="tomorrow-evening">明日 夜 19:00</button>
-              </div>
             </div>
 
             <!-- 送信日と送信時刻のコンパクト2カラムレイアウト -->
@@ -115,8 +103,8 @@
               <div class="datetime-card">
                 <div class="datetime-card-header">
                   <div class="card-title">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z"/></svg>
-                    送信日
+                    <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z"/></svg>
+                    <span>送信日</span>
                   </div>
                   <div class="quick-date-pills">
                     <button type="button" class="date-pill-btn active" data-quick-date="today">今日</button>
@@ -149,54 +137,53 @@
                 <input type="date" id="input-date" class="date-native-hidden">
               </div>
 
-              <!-- 送信時刻カード -->
+              <!-- 送信時刻カード (iOS Alarm-Style Time Picker) -->
               <div class="datetime-card">
                 <div class="datetime-card-header">
                   <div class="card-title">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
-                    送信時刻 (JST)
+                    <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
+                    <span>送信時刻 (JST)</span>
                   </div>
-                  <span class="time-preview-badge" id="time-display-badge">15:00</span>
+                  <span class="time-preview-badge" id="time-display-badge">13:00</span>
                 </div>
 
-                <!-- 直感的な時刻セレクター（時・分・クイック分ボタン） -->
-                <div class="time-picker-box">
-                  <div class="time-select-pair">
-                    <div class="time-select-unit">
-                      <span class="time-unit-label">時 (0〜23)</span>
-                      <select id="select-hour" class="styled-time-select">
-                        <!-- Populated by JS: 00時 〜 23時 -->
-                      </select>
-                    </div>
-                    <span class="time-select-colon">:</span>
-                    <div class="time-select-unit">
-                      <span class="time-unit-label">分 (00〜55)</span>
-                      <select id="select-minute" class="styled-time-select">
-                        <!-- Populated by JS: 00分 〜 55分 -->
-                      </select>
-                    </div>
-                  </div>
+                <!-- iOS アラーム風ドラムロール・ホイールピッカー -->
+                <div class="ios-picker-wrapper">
+                  <div class="ios-time-picker" id="ios-time-picker">
+                    <!-- 選択ハイライトバー（中央レンズ） -->
+                    <div class="ios-picker-lens"></div>
+                    <!-- 上下グラデーションオーバーレイ -->
+                    <div class="ios-picker-fade"></div>
 
-                  <!-- クイック分ショートカット (:00, :15, :30, :45) -->
-                  <div class="quick-minutes-row">
-                    <span class="quick-minutes-label">分ショートカット:</span>
-                    <div class="quick-minutes-pills">
-                      <button type="button" class="min-pill-btn" data-min="00">:00</button>
-                      <button type="button" class="min-pill-btn" data-min="15">:15</button>
-                      <button type="button" class="min-pill-btn" data-min="30">:30</button>
-                      <button type="button" class="min-pill-btn" data-min="45">:45</button>
+                    <!-- 時 カラム -->
+                    <div class="ios-picker-col" id="col-hour">
+                      <button type="button" class="picker-stepper picker-stepper-up" data-step-col="hour" data-dir="-1" title="1時間戻す">
+                        <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"/></svg>
+                      </button>
+                      <div class="ios-picker-wheel" id="wheel-hour">
+                        <!-- Populated by JS: 00〜23 -->
+                      </div>
+                      <button type="button" class="picker-stepper picker-stepper-down" data-step-col="hour" data-dir="1" title="1時間進める">
+                        <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg>
+                      </button>
+                      <span class="picker-unit-caption">時</span>
                     </div>
-                  </div>
 
-                  <!-- よく使う時間帯プリセットチップ -->
-                  <div class="popular-hours-row">
-                    <span class="popular-hours-label">定番時間帯:</span>
-                    <div class="popular-hours-pills">
-                      <button type="button" class="hour-preset-pill" data-time="09:00">朝 09:00</button>
-                      <button type="button" class="hour-preset-pill" data-time="12:00">昼 12:00</button>
-                      <button type="button" class="hour-preset-pill" data-time="18:00">夕 18:00</button>
-                      <button type="button" class="hour-preset-pill" data-time="20:00">夜 20:00</button>
-                      <button type="button" class="hour-preset-pill" data-time="21:00">夜 21:00</button>
+                    <!-- 区切りコロン -->
+                    <div class="ios-picker-sep">:</div>
+
+                    <!-- 分 カラム -->
+                    <div class="ios-picker-col" id="col-minute">
+                      <button type="button" class="picker-stepper picker-stepper-up" data-step-col="minute" data-dir="-1" title="1分戻す">
+                        <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"/></svg>
+                      </button>
+                      <div class="ios-picker-wheel" id="wheel-minute">
+                        <!-- Populated by JS: 00〜59 -->
+                      </div>
+                      <button type="button" class="picker-stepper picker-stepper-down" data-step-col="minute" data-dir="1" title="1分進める">
+                        <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg>
+                      </button>
+                      <span class="picker-unit-caption">分</span>
                     </div>
                   </div>
                 </div>
@@ -670,6 +657,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=20261013"></script>
+  <script src="app.js?v=20261013_v2"></script>
 </body>
 </html>

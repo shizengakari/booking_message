@@ -60,11 +60,10 @@
     editorPane: document.getElementById('editor-container'),
     previewPane: document.getElementById('preview-container'),
 
-    // Schedule Summary Card & Presets
+    // Schedule Summary Bar
     summaryCardMain: document.getElementById('summary-card-main'),
     summaryCardSub: document.getElementById('summary-card-sub'),
     datetimeWarning: document.getElementById('datetime-warning'),
-    presetPills: document.querySelectorAll('.preset-pill-btn'),
 
     // Calendar
     calPrevMonth: document.getElementById('cal-prev-month'),
@@ -74,12 +73,11 @@
     quickDatePills: document.querySelectorAll('.date-pill-btn'),
     inputDate: document.getElementById('input-date'),
 
-    // Time Picker
+    // iOS Alarm-Style Time Picker
     timeDisplayBadge: document.getElementById('time-display-badge'),
-    selectHour: document.getElementById('select-hour'),
-    selectMinute: document.getElementById('select-minute'),
-    minPillBtns: document.querySelectorAll('.min-pill-btn'),
-    hourPresetPills: document.querySelectorAll('.hour-preset-pill'),
+    wheelHour: document.getElementById('wheel-hour'),
+    wheelMinute: document.getElementById('wheel-minute'),
+    stepperBtns: document.querySelectorAll('.picker-stepper'),
     inputTime: document.getElementById('input-time'),
 
     // Recurrence
@@ -295,29 +293,29 @@
   function updateScheduleSummaryCard() {
     const info = formatHumanReadableDateTime(state.date, state.time);
     if (!info.fullText) {
-      el.summaryCardMain.textContent = '日時を選択してください';
-      el.summaryCardSub.textContent = '-';
-      el.datetimeWarning.style.display = 'none';
+      if (el.summaryCardMain) el.summaryCardMain.textContent = '日時を選択してください';
+      if (el.summaryCardSub) el.summaryCardSub.textContent = '-';
+      if (el.datetimeWarning) el.datetimeWarning.style.display = 'none';
       return;
     }
 
-    el.summaryCardMain.textContent = info.fullText;
-    el.summaryCardSub.textContent = info.relativeText;
-    el.dateWeekdayBadge.textContent = info.weekdayFull || '';
+    if (el.summaryCardMain) el.summaryCardMain.textContent = info.fullText;
+    if (el.summaryCardSub) el.summaryCardSub.textContent = info.relativeText;
 
-    if (info.isPast) {
-      el.summaryCardSub.style.color = '#ff787b';
-      el.datetimeWarning.style.display = 'block';
-    } else {
-      el.summaryCardSub.style.color = '#8ea1e1';
-      el.datetimeWarning.style.display = 'none';
+    if (el.datetimeWarning) {
+      if (info.isPast) {
+        if (el.summaryCardSub) el.summaryCardSub.style.color = '#ff787b';
+        el.datetimeWarning.style.display = 'block';
+      } else {
+        if (el.summaryCardSub) el.summaryCardSub.style.color = '#8ea1e1';
+        el.datetimeWarning.style.display = 'none';
+      }
     }
   }
 
   // --- Calendar & Clock State ---
   let calViewYear = 2026;
   let calViewMonth = 9; // 0-indexed (9 = Oct)
-  let clockPeriod = 'pm'; // 'am' | 'pm'
 
   // --- Calendar Logic ---
   function renderCalendar() {
@@ -404,145 +402,181 @@
     renderCalendar();
   }
 
-  // --- Time Picker Logic ---
-  function initTimeSelects() {
-    if (!el.selectHour || !el.selectMinute) return;
-    el.selectHour.innerHTML = '';
+  // --- iOS Alarm-Style Wheel Picker Logic ---
+  const ITEM_HEIGHT = 38; // Matches .wheel-item height in CSS
+  let isWheelScrolling = false;
+  let hourScrollTimer = null;
+  let minuteScrollTimer = null;
+
+  function initIosWheelPicker() {
+    if (!el.wheelHour || !el.wheelMinute) return;
+
+    // 1. Populate Hours (00〜23)
+    el.wheelHour.innerHTML = '';
     for (let h = 0; h < 24; h++) {
-      const val = String(h).padStart(2, '0');
-      const opt = document.createElement('option');
-      opt.value = val;
-      opt.textContent = `${val}時`;
-      el.selectHour.appendChild(opt);
-    }
-
-    el.selectMinute.innerHTML = '';
-    for (let m = 0; m < 60; m += 5) {
-      const val = String(m).padStart(2, '0');
-      const opt = document.createElement('option');
-      opt.value = val;
-      opt.textContent = `${val}分`;
-      el.selectMinute.appendChild(opt);
-    }
-  }
-
-  function renderTimePicker() {
-    if (!state.time) state.time = '12:00';
-    const [hStr, mStr] = state.time.split(':');
-
-    if (el.timeDisplayBadge) {
-      el.timeDisplayBadge.textContent = `${hStr}:${mStr}`;
-    }
-
-    if (el.selectHour) {
-      el.selectHour.value = hStr;
-    }
-
-    if (el.selectMinute) {
-      let found = false;
-      for (let i = 0; i < el.selectMinute.options.length; i++) {
-        if (el.selectMinute.options[i].value === mStr) {
-          el.selectMinute.selectedIndex = i;
-          found = true;
-          break;
-        }
-      }
-      if (!found) {
-        const opt = document.createElement('option');
-        opt.value = mStr;
-        opt.textContent = `${mStr}分`;
-        el.selectMinute.appendChild(opt);
-        el.selectMinute.value = mStr;
-      }
-    }
-
-    // Update active state of minute pills
-    if (el.minPillBtns) {
-      el.minPillBtns.forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.min === mStr);
+      const valStr = String(h).padStart(2, '0');
+      const item = document.createElement('div');
+      item.className = 'wheel-item';
+      item.dataset.val = valStr;
+      item.dataset.index = h;
+      item.textContent = valStr;
+      item.addEventListener('click', () => {
+        setHour(h, true);
       });
+      el.wheelHour.appendChild(item);
     }
 
-    // Update active state of popular hours pills
-    if (el.hourPresetPills) {
-      el.hourPresetPills.forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.time === `${hStr}:${mStr}`);
+    // 2. Populate Minutes (00〜59)
+    el.wheelMinute.innerHTML = '';
+    for (let m = 0; m < 60; m++) {
+      const valStr = String(m).padStart(2, '0');
+      const item = document.createElement('div');
+      item.className = 'wheel-item';
+      item.dataset.val = valStr;
+      item.dataset.index = m;
+      item.textContent = valStr;
+      item.addEventListener('click', () => {
+        setMinute(m, true);
+      });
+      el.wheelMinute.appendChild(item);
+    }
+
+    // 3. Attach Scroll Listeners with Debounced Sync
+    el.wheelHour.addEventListener('scroll', () => {
+      onWheelScroll('hour');
+    }, { passive: true });
+
+    el.wheelMinute.addEventListener('scroll', () => {
+      onWheelScroll('minute');
+    }, { passive: true });
+
+    // 4. Attach Stepper Buttons (▲ / ▼)
+    if (el.stepperBtns) {
+      el.stepperBtns.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          const col = btn.dataset.stepCol;
+          const dir = parseInt(btn.dataset.dir, 10);
+          const [curH, curM] = (state.time || '12:00').split(':').map(Number);
+
+          if (col === 'hour') {
+            const nextH = (curH + dir + 24) % 24;
+            setHour(nextH, true);
+          } else if (col === 'minute') {
+            const nextM = (curM + dir + 60) % 60;
+            setMinute(nextM, true);
+          }
+        });
       });
     }
   }
 
-  function setHour(h) {
+  function onWheelScroll(type) {
+    const wheel = type === 'hour' ? el.wheelHour : el.wheelMinute;
+    if (!wheel) return;
+
+    const total = type === 'hour' ? 24 : 60;
+    const rawIdx = Math.round(wheel.scrollTop / ITEM_HEIGHT);
+    const activeIdx = Math.max(0, Math.min(total - 1, rawIdx));
+
+    // Update active highlight class
+    const items = wheel.querySelectorAll('.wheel-item');
+    items.forEach((it, i) => {
+      it.classList.toggle('active', i === activeIdx);
+    });
+
+    // Debounce state commit
+    if (type === 'hour') {
+      clearTimeout(hourScrollTimer);
+      hourScrollTimer = setTimeout(() => {
+        const hVal = String(activeIdx).padStart(2, '0');
+        const curM = state.time ? state.time.split(':')[1] : '00';
+        state.time = `${hVal}:${curM}`;
+        if (el.inputTime) el.inputTime.value = state.time;
+        if (el.timeDisplayBadge) el.timeDisplayBadge.textContent = state.time;
+        updateScheduleSummaryCard();
+        renderPreview();
+      }, 70);
+    } else {
+      clearTimeout(minuteScrollTimer);
+      minuteScrollTimer = setTimeout(() => {
+        const curH = state.time ? state.time.split(':')[0] : '12';
+        const mVal = String(activeIdx).padStart(2, '0');
+        state.time = `${curH}:${mVal}`;
+        if (el.inputTime) el.inputTime.value = state.time;
+        if (el.timeDisplayBadge) el.timeDisplayBadge.textContent = state.time;
+        updateScheduleSummaryCard();
+        renderPreview();
+      }, 70);
+    }
+  }
+
+  function setHour(h, smooth = true) {
     const curM = state.time ? state.time.split(':')[1] : '00';
     state.time = `${String(h).padStart(2, '0')}:${curM}`;
-    el.inputTime.value = state.time;
-    renderTimePicker();
+    if (el.inputTime) el.inputTime.value = state.time;
+    if (el.timeDisplayBadge) el.timeDisplayBadge.textContent = state.time;
+    syncIosWheelPicker(state.time, smooth);
     updateScheduleSummaryCard();
     renderPreview();
   }
 
-  function setMinute(m) {
+  function setMinute(m, smooth = true) {
     const curH = state.time ? state.time.split(':')[0] : '12';
     state.time = `${curH}:${String(m).padStart(2, '0')}`;
-    el.inputTime.value = state.time;
-    renderTimePicker();
+    if (el.inputTime) el.inputTime.value = state.time;
+    if (el.timeDisplayBadge) el.timeDisplayBadge.textContent = state.time;
+    syncIosWheelPicker(state.time, smooth);
     updateScheduleSummaryCard();
     renderPreview();
   }
 
-  // --- Quick Presets Logic ---
-  function applyPreset(mode) {
-    const jstNow = getJSTNow();
-    let target = new Date(jstNow);
+  function syncIosWheelPicker(timeStr, smooth = false) {
+    if (!timeStr) return;
+    const [hStr, mStr] = timeStr.split(':');
+    const h = parseInt(hStr, 10) || 0;
+    const m = parseInt(mStr, 10) || 0;
 
-    if (mode === 'in-30m') {
-      target.setMinutes(target.getMinutes() + 30);
-    } else if (mode === 'in-1h') {
-      target.setMinutes(target.getMinutes() + 60);
-    } else if (mode === 'tonight') {
-      target.setHours(20, 0, 0, 0);
-      if (target.getTime() <= jstNow.getTime()) {
-        target.setDate(target.getDate() + 1);
-      }
-    } else if (mode === 'tomorrow-morning') {
-      target.setDate(target.getDate() + 1);
-      target.setHours(9, 0, 0, 0);
-    } else if (mode === 'tomorrow-noon') {
-      target.setDate(target.getDate() + 1);
-      target.setHours(12, 0, 0, 0);
-    } else if (mode === 'tomorrow-evening') {
-      target.setDate(target.getDate() + 1);
-      target.setHours(19, 0, 0, 0);
+    if (el.timeDisplayBadge) {
+      el.timeDisplayBadge.textContent = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
     }
 
-    state.date = formatYMD(target);
-    state.time = formatHM(target);
-    el.inputDate.value = state.date;
-    el.inputTime.value = state.time;
+    if (el.wheelHour) {
+      el.wheelHour.scrollTo({
+        top: h * ITEM_HEIGHT,
+        behavior: smooth ? 'smooth' : 'auto'
+      });
+      const items = el.wheelHour.querySelectorAll('.wheel-item');
+      items.forEach((it, i) => it.classList.toggle('active', i === h));
+    }
 
-    jumpCalendarToDate(state.date);
-    renderTimePicker();
-    updateScheduleSummaryCard();
-    renderPreview();
-    showToast('⚡ 日時を設定しました');
+    if (el.wheelMinute) {
+      el.wheelMinute.scrollTo({
+        top: m * ITEM_HEIGHT,
+        behavior: smooth ? 'smooth' : 'auto'
+      });
+      const items = el.wheelMinute.querySelectorAll('.wheel-item');
+      items.forEach((it, i) => it.classList.toggle('active', i === m));
+    }
   }
 
   // --- Initial Defaults ---
   function initDefaults() {
     const jstNow = getJSTNow();
-    const future = new Date(jstNow.getTime() + 60 * 60000);
-    const mRem = future.getMinutes() % 5;
-    if (mRem !== 0) {
-      future.setMinutes(future.getMinutes() + (5 - mRem));
-    }
+    const target = new Date(jstNow);
+    // 次の時間へ進め、分は必ず '00' にセット（iOSアラーム風 & ユーザー指定要件）
+    target.setHours(target.getHours() + 1);
+    target.setMinutes(0, 0, 0);
 
-    state.date = formatYMD(future);
-    state.time = formatHM(future);
+    state.date = formatYMD(target);
+    state.time = formatHM(target); // 分は必ず '00'
 
-    el.inputDate.value = state.date;
-    el.inputTime.value = state.time;
+    if (el.inputDate) el.inputDate.value = state.date;
+    if (el.inputTime) el.inputTime.value = state.time;
 
     jumpCalendarToDate(state.date);
-    renderTimePicker();
+    initIosWheelPicker();
+    syncIosWheelPicker(state.time, false);
     updateScheduleSummaryCard();
   }
 
@@ -1125,9 +1159,10 @@
       const parts = data.datetime.split('T');
       if (parts[0]) state.date = parts[0];
       if (parts[1]) state.time = parts[1].substring(0, 5);
-      el.inputDate.value = state.date;
-      el.inputTime.value = state.time;
-      syncTimeSelectsFromState();
+      if (el.inputDate) el.inputDate.value = state.date;
+      if (el.inputTime) el.inputTime.value = state.time;
+      jumpCalendarToDate(state.date);
+      syncIosWheelPicker(state.time, false);
       updateScheduleSummaryCard();
     }
 
@@ -1286,82 +1321,50 @@
       });
     }
 
-    // 3. Quick Time Presets
-    if (el.presetPills) {
-      el.presetPills.forEach(pill => {
-        pill.addEventListener('click', () => {
-          applyPreset(pill.dataset.preset);
-        });
-      });
-    }
+    // 3. Quick Date Selection Pills
+    if (el.quickDatePills) {
+      el.quickDatePills.forEach(pill => {
+        pill.addEventListener('click', (e) => {
+          e.preventDefault();
+          el.quickDatePills.forEach(p => p.classList.remove('active'));
+          pill.classList.add('active');
 
-    // 4. Quick Date Selection Pills
-    el.quickDatePills.forEach(pill => {
-      pill.addEventListener('click', () => {
-        el.quickDatePills.forEach(p => p.classList.remove('active'));
-        pill.classList.add('active');
+          const mode = pill.dataset.quickDate;
+          const jstNow = getJSTNow();
+          let target = new Date(jstNow);
 
-        const mode = pill.dataset.quickDate;
-        const jstNow = getJSTNow();
-        let target = new Date(jstNow);
+          if (mode === 'today') {
+            // Keep today
+          } else if (mode === 'tomorrow') {
+            target.setDate(target.getDate() + 1);
+          } else if (mode === 'after-tomorrow') {
+            target.setDate(target.getDate() + 2);
+          } else if (mode === 'next-week') {
+            target.setDate(target.getDate() + 7);
+          }
 
-        if (mode === 'today') {
-          // Keep today
-        } else if (mode === 'tomorrow') {
-          target.setDate(target.getDate() + 1);
-        } else if (mode === 'after-tomorrow') {
-          target.setDate(target.getDate() + 2);
-        } else if (mode === 'next-week') {
-          target.setDate(target.getDate() + 7);
-        }
-
-        state.date = formatYMD(target);
-        el.inputDate.value = state.date;
-        jumpCalendarToDate(state.date);
-        updateScheduleSummaryCard();
-        renderPreview();
-      });
-    });
-
-    // 5. Calendar Navigation (Prev / Next Month)
-    if (el.calPrevMonth) {
-      el.calPrevMonth.addEventListener('click', () => changeCalendarMonth(-1));
-    }
-    if (el.calNextMonth) {
-      el.calNextMonth.addEventListener('click', () => changeCalendarMonth(1));
-    }
-
-    // 6. Time Picker (Select Hour & Minute)
-    if (el.selectHour) {
-      el.selectHour.addEventListener('change', (e) => {
-        setHour(e.target.value);
-      });
-    }
-    if (el.selectMinute) {
-      el.selectMinute.addEventListener('change', (e) => {
-        setMinute(e.target.value);
-      });
-    }
-
-    // Quick minute pills (:00, :15, :30, :45)
-    if (el.minPillBtns) {
-      el.minPillBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-          setMinute(btn.dataset.min);
-        });
-      });
-    }
-
-    // Popular hours pills (09:00, 12:00, 18:00, 20:00, 21:00)
-    if (el.hourPresetPills) {
-      el.hourPresetPills.forEach(btn => {
-        btn.addEventListener('click', () => {
-          state.time = btn.dataset.time;
-          el.inputTime.value = state.time;
-          renderTimePicker();
+          state.date = formatYMD(target);
+          if (el.inputDate) el.inputDate.value = state.date;
+          jumpCalendarToDate(state.date);
           updateScheduleSummaryCard();
           renderPreview();
         });
+      });
+    }
+
+    // 4. Calendar Navigation (Prev / Next Month)
+    if (el.calPrevMonth) {
+      el.calPrevMonth.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        changeCalendarMonth(-1);
+      });
+    }
+    if (el.calNextMonth) {
+      el.calNextMonth.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        changeCalendarMonth(1);
       });
     }
 
@@ -1673,7 +1676,6 @@
 
   // --- Initialize App ---
   function init() {
-    initTimeSelects();
     initDefaults();
     parseQueryParams();
     renderEmbedFieldsList();
