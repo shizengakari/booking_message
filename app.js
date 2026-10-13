@@ -60,16 +60,35 @@
     editorPane: document.getElementById('editor-container'),
     previewPane: document.getElementById('preview-container'),
 
-    // Schedule Summary Card & Datetime
+    // Schedule Summary Card & Presets
     summaryCardMain: document.getElementById('summary-card-main'),
     summaryCardSub: document.getElementById('summary-card-sub'),
     datetimeWarning: document.getElementById('datetime-warning'),
+    presetPills: document.querySelectorAll('.preset-pill-btn'),
+
+    // Calendar
+    calPrevMonth: document.getElementById('cal-prev-month'),
+    calNextMonth: document.getElementById('cal-next-month'),
+    calMonthLabel: document.getElementById('cal-month-label'),
+    calDaysGrid: document.getElementById('cal-days-grid'),
     quickDatePills: document.querySelectorAll('.date-pill-btn'),
     inputDate: document.getElementById('input-date'),
-    dateWeekdayBadge: document.getElementById('date-weekday-badge'),
+
+    // Digital Clock & Time Picker
+    timeDisplayBadge: document.getElementById('time-display-badge'),
+    clockNumHour: document.getElementById('clock-num-hour'),
+    clockNumMinute: document.getElementById('clock-num-minute'),
+    hourStepUp: document.getElementById('hour-step-up'),
+    hourStepDown: document.getElementById('hour-step-down'),
+    minuteStepUp: document.getElementById('minute-step-up'),
+    minuteStepDown: document.getElementById('minute-step-down'),
+    btnPeriodPm: document.getElementById('btn-period-pm'),
+    btnPeriodAm: document.getElementById('btn-period-am'),
+    hourChipsGrid: document.getElementById('hour-chips-grid'),
+    minuteChipsGrid: document.getElementById('minute-chips-grid'),
+    inputTime: document.getElementById('input-time'),
     selectHour: document.getElementById('select-hour'),
     selectMinute: document.getElementById('select-minute'),
-    inputTime: document.getElementById('input-time'),
 
     // Recurrence
     recurrenceType: document.getElementById('recurrence-type'),
@@ -116,6 +135,7 @@
     reviewType: document.getElementById('review-type'),
     reviewButtonsCount: document.getElementById('review-buttons-count'),
     btnCopyCode: document.getElementById('btn-copy-code'),
+    btnDownloadJson: document.getElementById('btn-download-json'),
 
     // Preview Elements
     previewChannelLabel: document.getElementById('preview-channel-label'),
@@ -156,6 +176,8 @@
     modalCloseBtn: document.getElementById('modal-close-btn'),
     modalCancelBtn: document.getElementById('modal-cancel-btn'),
     modalApplyBtn: document.getElementById('modal-apply-btn'),
+    modalFileInput: document.getElementById('modal-file-input'),
+    modalFileStatus: document.getElementById('modal-file-status'),
     importCodeInput: document.getElementById('import-code-input'),
     importErrorMsg: document.getElementById('import-error-msg'),
 
@@ -300,54 +322,244 @@
     }
   }
 
-  // Populate Hour & Minute Selects
-  function initTimeSelects() {
-    el.selectHour.innerHTML = '';
-    for (let h = 0; h < 24; h++) {
-      const val = String(h).padStart(2, '0');
-      const opt = document.createElement('option');
-      opt.value = val;
-      opt.textContent = `${val}時`;
-      el.selectHour.appendChild(opt);
+  // --- Calendar & Clock State ---
+  let calViewYear = 2026;
+  let calViewMonth = 9; // 0-indexed (9 = Oct)
+  let clockPeriod = 'pm'; // 'am' | 'pm'
+
+  // --- Calendar Logic ---
+  function renderCalendar() {
+    if (!el.calMonthLabel || !el.calDaysGrid) return;
+    el.calMonthLabel.textContent = `${calViewYear}年 ${calViewMonth + 1}月`;
+    el.calDaysGrid.innerHTML = '';
+
+    const jstNow = getJSTNow();
+    const todayYMD = formatYMD(jstNow);
+
+    // Monday start: 0=Mon, ..., 6=Sun
+    const firstDayRaw = new Date(calViewYear, calViewMonth, 1).getDay();
+    const firstDayMondayBased = (firstDayRaw + 6) % 7;
+    const totalDays = new Date(calViewYear, calViewMonth + 1, 0).getDate();
+    const prevTotalDays = new Date(calViewYear, calViewMonth, 0).getDate();
+
+    // 1. Previous month trailing days
+    for (let i = firstDayMondayBased - 1; i >= 0; i--) {
+      const dayNum = prevTotalDays - i;
+      const cell = document.createElement('div');
+      cell.className = 'cal-day-cell other-month disabled';
+      cell.textContent = dayNum;
+      el.calDaysGrid.appendChild(cell);
     }
 
-    el.selectMinute.innerHTML = '';
-    for (let m = 0; m < 60; m += 5) {
-      const val = String(m).padStart(2, '0');
-      const opt = document.createElement('option');
-      opt.value = val;
-      opt.textContent = `${val}分`;
-      el.selectMinute.appendChild(opt);
+    // 2. Current month days
+    for (let d = 1; d <= totalDays; d++) {
+      const ymd = `${calViewYear}-${String(calViewMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      const cell = document.createElement('div');
+      cell.className = 'cal-day-cell';
+      cell.textContent = d;
+
+      if (ymd < todayYMD) {
+        cell.classList.add('disabled', 'is-past');
+      } else {
+        cell.addEventListener('click', () => {
+          state.date = ymd;
+          el.inputDate.value = state.date;
+          renderCalendar();
+          updateScheduleSummaryCard();
+          renderPreview();
+        });
+      }
+
+      if (ymd === todayYMD) {
+        cell.classList.add('is-today');
+      }
+
+      if (ymd === state.date) {
+        cell.classList.add('is-selected');
+      }
+
+      el.calDaysGrid.appendChild(cell);
+    }
+
+    // 3. Next month leading days (pad to 7-column rows)
+    const currentCells = firstDayMondayBased + totalDays;
+    const remainingCells = (currentCells % 7 === 0) ? 0 : 7 - (currentCells % 7);
+    for (let d = 1; d <= remainingCells; d++) {
+      const cell = document.createElement('div');
+      cell.className = 'cal-day-cell other-month disabled';
+      cell.textContent = d;
+      el.calDaysGrid.appendChild(cell);
     }
   }
 
-  function syncTimeSelectsFromState() {
-    if (!state.time) return;
-    const [h, m] = state.time.split(':');
-    el.selectHour.value = h;
+  function changeCalendarMonth(delta) {
+    calViewMonth += delta;
+    if (calViewMonth > 11) {
+      calViewMonth = 0;
+      calViewYear++;
+    } else if (calViewMonth < 0) {
+      calViewMonth = 11;
+      calViewYear--;
+    }
+    renderCalendar();
+  }
 
-    // Check if m matches an option or append
-    let matched = false;
-    for (let i = 0; i < el.selectMinute.options.length; i++) {
-      if (el.selectMinute.options[i].value === m) {
-        el.selectMinute.selectedIndex = i;
-        matched = true;
-        break;
+  function jumpCalendarToDate(ymd) {
+    if (!ymd) return;
+    const [y, m] = ymd.split('-').map(Number);
+    calViewYear = y;
+    calViewMonth = m - 1;
+    renderCalendar();
+  }
+
+  // --- Clock / Time Picker Logic ---
+  function renderTimePicker() {
+    if (!el.clockNumHour || !el.clockNumMinute) return;
+    if (!state.time) state.time = '12:00';
+    const [hStr, mStr] = state.time.split(':');
+    let h = parseInt(hStr, 10);
+    let m = parseInt(mStr, 10);
+    if (isNaN(h)) h = 12;
+    if (isNaN(m)) m = 0;
+
+    // Digital display
+    el.clockNumHour.textContent = String(h).padStart(2, '0');
+    el.clockNumMinute.textContent = String(m).padStart(2, '0');
+    if (el.timeDisplayBadge) {
+      el.timeDisplayBadge.textContent = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+    }
+
+    // Period toggle
+    clockPeriod = (h >= 12) ? 'pm' : 'am';
+    if (el.btnPeriodPm) el.btnPeriodPm.classList.toggle('active', clockPeriod === 'pm');
+    if (el.btnPeriodAm) el.btnPeriodAm.classList.toggle('active', clockPeriod === 'am');
+
+    // Hour chips
+    renderHourChips(h);
+
+    // Minute chips
+    renderMinuteChips(m);
+  }
+
+  function renderHourChips(activeHour) {
+    if (!el.hourChipsGrid) return;
+    el.hourChipsGrid.innerHTML = '';
+    const startHour = (clockPeriod === 'pm') ? 12 : 0;
+    const endHour = startHour + 11;
+
+    for (let h = startHour; h <= endHour; h++) {
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'hour-chip' + (h === activeHour ? ' active' : '');
+      chip.textContent = `${h}時`;
+      chip.addEventListener('click', () => {
+        setHour(h);
+      });
+      el.hourChipsGrid.appendChild(chip);
+    }
+  }
+
+  function renderMinuteChips(activeMinute) {
+    if (!el.minuteChipsGrid) return;
+    el.minuteChipsGrid.innerHTML = '';
+    for (let m = 0; m < 60; m += 5) {
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      const isMatch = (activeMinute === m) || (Math.abs(activeMinute - m) <= 2 && Math.round(activeMinute / 5) * 5 === m);
+      chip.className = 'minute-chip' + (isMatch ? ' active' : '');
+      chip.textContent = `${String(m).padStart(2, '0')}分`;
+      chip.addEventListener('click', () => {
+        setMinute(m);
+      });
+      el.minuteChipsGrid.appendChild(chip);
+    }
+  }
+
+  function setHour(h) {
+    const curM = state.time ? state.time.split(':')[1] : '00';
+    state.time = `${String(h).padStart(2, '0')}:${curM}`;
+    el.inputTime.value = state.time;
+    renderTimePicker();
+    updateScheduleSummaryCard();
+    renderPreview();
+  }
+
+  function setMinute(m) {
+    const curH = state.time ? state.time.split(':')[0] : '12';
+    state.time = `${curH}:${String(m).padStart(2, '0')}`;
+    el.inputTime.value = state.time;
+    renderTimePicker();
+    updateScheduleSummaryCard();
+    renderPreview();
+  }
+
+  function stepHour(delta) {
+    let [h, m] = (state.time || '12:00').split(':').map(Number);
+    h = (h + delta + 24) % 24;
+    state.time = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+    el.inputTime.value = state.time;
+    renderTimePicker();
+    updateScheduleSummaryCard();
+    renderPreview();
+  }
+
+  function stepMinute(delta) {
+    let [h, m] = (state.time || '12:00').split(':').map(Number);
+    m = m + delta;
+    if (m >= 60) {
+      m = 0;
+      h = (h + 1) % 24;
+    } else if (m < 0) {
+      m = 55;
+      h = (h - 1 + 24) % 24;
+    }
+    state.time = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+    el.inputTime.value = state.time;
+    renderTimePicker();
+    updateScheduleSummaryCard();
+    renderPreview();
+  }
+
+  // --- Quick Presets Logic ---
+  function applyPreset(mode) {
+    const jstNow = getJSTNow();
+    let target = new Date(jstNow);
+
+    if (mode === 'in-30m') {
+      target.setMinutes(target.getMinutes() + 30);
+    } else if (mode === 'in-1h') {
+      target.setMinutes(target.getMinutes() + 60);
+    } else if (mode === 'tonight') {
+      target.setHours(20, 0, 0, 0);
+      if (target.getTime() <= jstNow.getTime()) {
+        target.setDate(target.getDate() + 1);
       }
+    } else if (mode === 'tomorrow-morning') {
+      target.setDate(target.getDate() + 1);
+      target.setHours(9, 0, 0, 0);
+    } else if (mode === 'tomorrow-noon') {
+      target.setDate(target.getDate() + 1);
+      target.setHours(12, 0, 0, 0);
+    } else if (mode === 'tomorrow-evening') {
+      target.setDate(target.getDate() + 1);
+      target.setHours(19, 0, 0, 0);
     }
-    if (!matched) {
-      const customOpt = document.createElement('option');
-      customOpt.value = m;
-      customOpt.textContent = `${m}分`;
-      el.selectMinute.appendChild(customOpt);
-      el.selectMinute.value = m;
-    }
+
+    state.date = formatYMD(target);
+    state.time = formatHM(target);
+    el.inputDate.value = state.date;
+    el.inputTime.value = state.time;
+
+    jumpCalendarToDate(state.date);
+    renderTimePicker();
+    updateScheduleSummaryCard();
+    renderPreview();
+    showToast('⚡ 日時を設定しました');
   }
 
   // --- Initial Defaults ---
   function initDefaults() {
     const jstNow = getJSTNow();
-    // Default to 1 hour later, rounded to 5 minutes
     const future = new Date(jstNow.getTime() + 60 * 60000);
     const mRem = future.getMinutes() % 5;
     if (mRem !== 0) {
@@ -359,8 +571,9 @@
 
     el.inputDate.value = state.date;
     el.inputTime.value = state.time;
-    syncTimeSelectsFromState();
 
+    jumpCalendarToDate(state.date);
+    renderTimePicker();
     updateScheduleSummaryCard();
   }
 
@@ -413,21 +626,20 @@
         </div>
         <div class="form-row">
           <div class="form-group flex-1">
-            <input type="text" class="form-input btn-label-input" placeholder="表示テキスト (例: 公式サイト)" value="${escapeHtml(btn.label)}" maxlength="80">
+            <label class="form-sublabel">ボタン表示名</label>
+            <input type="text" class="form-input btn-label-input" placeholder="例: 🚀 公式サイトへ移動" value="${escapeHtml(btn.label)}" maxlength="80">
+            <span class="field-help-text">※絵文字を表示したい場合はテキスト内に直接入力してください</span>
           </div>
           <div class="form-group flex-1">
-            <input type="url" class="form-input btn-url-input" placeholder="リンク先 URL (https://...)" value="${escapeHtml(btn.url)}">
+            <label class="form-sublabel">リンク先 URL</label>
+            <input type="url" class="form-input btn-url-input" placeholder="https://..." value="${escapeHtml(btn.url)}">
           </div>
-        </div>
-        <div class="form-group" style="max-width: 140px;">
-          <input type="text" class="form-input btn-emoji-input" placeholder="絵文字 (任意)" value="${escapeHtml(btn.emoji || '')}" maxlength="10">
         </div>
       `;
 
       // Event listeners
       const labelInput = card.querySelector('.btn-label-input');
       const urlInput = card.querySelector('.btn-url-input');
-      const emojiInput = card.querySelector('.btn-emoji-input');
       const deleteBtn = card.querySelector('.button-delete-btn');
 
       labelInput.addEventListener('input', (e) => {
@@ -437,11 +649,6 @@
 
       urlInput.addEventListener('input', (e) => {
         btn.url = e.target.value;
-        renderPreview();
-      });
-
-      emojiInput.addEventListener('input', (e) => {
-        btn.emoji = e.target.value.trim();
         renderPreview();
       });
 
@@ -467,8 +674,7 @@
     const newBtn = {
       id: 'btn_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
       label: '',
-      url: '',
-      emoji: ''
+      url: ''
     };
     state.buttons.push(newBtn);
     renderButtonsList();
@@ -753,12 +959,7 @@
           linkBtn.href = 'javascript:void(0)';
         }
 
-        let inner = '';
-        if (btn.emoji) {
-          inner += `<span class="btn-emoji">${escapeHtml(btn.emoji)}</span> `;
-        }
-        inner += `<span>${escapeHtml(label)}</span>`;
-        inner += ` <svg class="btn-ext-icon" viewBox="0 0 24 24"><path d="M10 5V3H5.00001C3.89544 3 3.00001 3.89543 3.00001 5V19C3.00001 20.1046 3.89544 21 5.00001 21H19C20.1046 21 21 20.1046 21 19V14H19V19H5.00001V5H10ZM14 3V5H17.5858L9.2929 13.2929L10.7071 14.7071L19 6.41421V10H21V3H14Z"/></svg>`;
+        const inner = `<span>${escapeHtml(label)}</span> <svg class="btn-ext-icon" viewBox="0 0 24 24"><path d="M10 5V3H5.00001C3.89544 3 3.00001 3.89543 3.00001 5V19C3.00001 20.1046 3.89544 21 5.00001 21H19C20.1046 21 21 20.1046 21 19V14H19V19H5.00001V5H10ZM14 3V5H17.5858L9.2929 13.2929L10.7071 14.7071L19 6.41421V10H21V3H14Z"/></svg>`;
 
         linkBtn.innerHTML = inner;
         el.previewButtonsRow.appendChild(linkBtn);
@@ -893,8 +1094,7 @@
         .filter(b => b.label.trim() && isValidUrl(b.url))
         .map(b => ({
           label: b.label.trim(),
-          url: b.url.trim(),
-          ...(b.emoji ? { emoji: b.emoji } : {})
+          url: b.url.trim()
         }));
       if (validBtns.length > 0) {
         payload.buttons = validBtns;
@@ -1030,8 +1230,7 @@
       state.buttons = data.buttons.map((b, i) => ({
         id: 'btn_imp_' + i,
         label: b.label || '',
-        url: b.url || '',
-        emoji: b.emoji || ''
+        url: b.url || ''
       }));
       renderButtonsList();
     } else {
@@ -1118,7 +1317,16 @@
       });
     }
 
-    // 3. Quick Date Selection Pills
+    // 3. Quick Time Presets
+    if (el.presetPills) {
+      el.presetPills.forEach(pill => {
+        pill.addEventListener('click', () => {
+          applyPreset(pill.dataset.preset);
+        });
+      });
+    }
+
+    // 4. Quick Date Selection Pills
     el.quickDatePills.forEach(pill => {
       pill.addEventListener('click', () => {
         el.quickDatePills.forEach(p => p.classList.remove('active'));
@@ -1134,47 +1342,48 @@
           target.setDate(target.getDate() + 1);
         } else if (mode === 'after-tomorrow') {
           target.setDate(target.getDate() + 2);
-        } else if (mode === 'custom') {
-          el.inputDate.focus();
-          return;
+        } else if (mode === 'next-week') {
+          target.setDate(target.getDate() + 7);
         }
 
         state.date = formatYMD(target);
         el.inputDate.value = state.date;
+        jumpCalendarToDate(state.date);
         updateScheduleSummaryCard();
         renderPreview();
       });
     });
 
-    // 4. Date & Time Inputs
-    el.inputDate.addEventListener('change', (e) => {
-      state.date = e.target.value;
-      updateScheduleSummaryCard();
-      renderPreview();
-    });
+    // 5. Calendar Navigation (Prev / Next Month)
+    if (el.calPrevMonth) {
+      el.calPrevMonth.addEventListener('click', () => changeCalendarMonth(-1));
+    }
+    if (el.calNextMonth) {
+      el.calNextMonth.addEventListener('click', () => changeCalendarMonth(1));
+    }
 
-    el.selectHour.addEventListener('change', (e) => {
-      const curM = el.selectMinute.value || '00';
-      state.time = `${e.target.value}:${curM}`;
-      el.inputTime.value = state.time;
-      updateScheduleSummaryCard();
-      renderPreview();
-    });
+    // 6. Digital Clock Steppers & Period Toggle
+    if (el.hourStepUp) el.hourStepUp.addEventListener('click', () => stepHour(1));
+    if (el.hourStepDown) el.hourStepDown.addEventListener('click', () => stepHour(-1));
+    if (el.minuteStepUp) el.minuteStepUp.addEventListener('click', () => stepMinute(5));
+    if (el.minuteStepDown) el.minuteStepDown.addEventListener('click', () => stepMinute(-5));
 
-    el.selectMinute.addEventListener('change', (e) => {
-      const curH = el.selectHour.value || '12';
-      state.time = `${curH}:${e.target.value}`;
-      el.inputTime.value = state.time;
-      updateScheduleSummaryCard();
-      renderPreview();
-    });
-
-    el.inputTime.addEventListener('change', (e) => {
-      state.time = e.target.value;
-      syncTimeSelectsFromState();
-      updateScheduleSummaryCard();
-      renderPreview();
-    });
+    if (el.btnPeriodPm) {
+      el.btnPeriodPm.addEventListener('click', () => {
+        clockPeriod = 'pm';
+        let [h] = (state.time || '12:00').split(':').map(Number);
+        if (h < 12) h += 12;
+        setHour(h);
+      });
+    }
+    if (el.btnPeriodAm) {
+      el.btnPeriodAm.addEventListener('click', () => {
+        clockPeriod = 'am';
+        let [h] = (state.time || '12:00').split(':').map(Number);
+        if (h >= 12) h -= 12;
+        setHour(h);
+      });
+    }
 
     // 5. Recurrence
     el.recurrenceType.addEventListener('change', (e) => {
@@ -1341,9 +1550,56 @@
       });
     });
 
-    // 11. Modal: Import Code
+    // 11. Download JSON File Action (No Discord character limit issues)
+    if (el.btnDownloadJson) {
+      el.btnDownloadJson.addEventListener('click', () => {
+        const info = formatHumanReadableDateTime(state.date, state.time);
+        if (info.isPast) {
+          showToast('⚠️ 過去の日時は予約できません');
+          goToStep(1);
+          return;
+        }
+
+        if (state.messageType === 'plain') {
+          if (!state.plain.content.trim() && !state.plain.image_url.trim()) {
+            showToast('⚠️ メッセージ本文または画像を入力してください');
+            goToStep(2);
+            return;
+          }
+        } else {
+          const hasContent = state.embed.title.trim() ||
+            state.embed.description.trim() ||
+            state.embed.image_url.trim() ||
+            state.embed.fields.length > 0 ||
+            state.embed.author.name.trim();
+          if (!hasContent) {
+            showToast('⚠️ タイトル、説明文、または画像を入力してください');
+            goToStep(2);
+            return;
+          }
+        }
+
+        const payload = buildPayload();
+        const jsonStr = JSON.stringify(payload, null, 2);
+        const blob = new Blob([jsonStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const timeClean = (state.time || '1200').replace(':', '');
+        a.download = `discord_reservation_${state.date}_${timeClean}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast('💾 予約ファイル (.json) をダウンロードしました！');
+      });
+    }
+
+    // 12. Modal: Import Code or JSON File
     el.btnOpenImport.addEventListener('click', () => {
       el.importCodeInput.value = '';
+      if (el.modalFileStatus) el.modalFileStatus.textContent = '';
+      if (el.modalFileInput) el.modalFileInput.value = '';
       el.importErrorMsg.style.display = 'none';
       el.importModal.style.display = 'flex';
     });
@@ -1355,10 +1611,33 @@
       el.importModal.style.display = 'none';
     });
 
+    if (el.modalFileInput) {
+      el.modalFileInput.addEventListener('change', (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+        if (el.modalFileStatus) el.modalFileStatus.textContent = file.name;
+        const reader = new FileReader();
+        reader.onload = (evt) => {
+          try {
+            const text = evt.target.result;
+            el.importCodeInput.value = text;
+            const data = decodeReservationCode(text);
+            applyImportedData(data);
+            el.importModal.style.display = 'none';
+            showToast(`✅ ${file.name} を読み込みました！`);
+          } catch (err) {
+            el.importErrorMsg.textContent = 'ファイルの読み込みに失敗しました: ' + err.message;
+            el.importErrorMsg.style.display = 'block';
+          }
+        };
+        reader.readAsText(file);
+      });
+    }
+
     el.modalApplyBtn.addEventListener('click', () => {
       const codeStr = el.importCodeInput.value.trim();
       if (!codeStr) {
-        el.importErrorMsg.textContent = 'コードを入力してください';
+        el.importErrorMsg.textContent = 'コードまたはJSONを入力してください';
         el.importErrorMsg.style.display = 'block';
         return;
       }
@@ -1366,14 +1645,14 @@
         const data = decodeReservationCode(codeStr);
         applyImportedData(data);
         el.importModal.style.display = 'none';
-        showToast('予約コードを読み込みました');
+        showToast('予約設定を読み込みました');
       } catch (err) {
-        el.importErrorMsg.textContent = '無効な予約コードです: ' + err.message;
+        el.importErrorMsg.textContent = '無効な予約データです: ' + err.message;
         el.importErrorMsg.style.display = 'block';
       }
     });
 
-    // 12. Reset Button
+    // 13. Reset Button
     el.btnReset.addEventListener('click', () => {
       if (!confirm('入力内容をリセットしますか？')) return;
       initDefaults();
@@ -1414,7 +1693,6 @@
 
   // --- Initialize App ---
   function init() {
-    initTimeSelects();
     initDefaults();
     parseQueryParams();
     renderEmbedFieldsList();

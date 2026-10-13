@@ -81,7 +81,10 @@
 
             <!-- Selected Schedule Summary Card (Real-time highlight) -->
             <div class="schedule-summary-card" id="schedule-summary-card">
-              <div class="summary-card-icon">📅</div>
+              <div class="summary-card-badge">
+                <span class="summary-pulse-dot"></span>
+                <span class="summary-badge-text">送信予定</span>
+              </div>
               <div class="summary-card-info">
                 <div class="summary-card-main" id="summary-card-main">2026年10月13日(火) 15:00 (JST)</div>
                 <div class="summary-card-sub" id="summary-card-sub">あと 3時間後</div>
@@ -92,52 +95,139 @@
               ⚠️ 過去の日時が指定されています。未来の日時を指定してください。
             </div>
 
-            <!-- Date Selection Group -->
-            <div class="form-group">
-              <label>送信日 <span class="required">*</span></label>
-              <!-- Quick Date Selection Pills -->
-              <div class="quick-date-pills">
-                <button type="button" class="date-pill-btn active" data-quick-date="today">今日</button>
-                <button type="button" class="date-pill-btn" data-quick-date="tomorrow">明日</button>
-                <button type="button" class="date-pill-btn" data-quick-date="after-tomorrow">明後日</button>
-                <button type="button" class="date-pill-btn" data-quick-date="custom">日付指定</button>
-              </div>
-              <div class="date-input-wrapper">
-                <input type="date" id="input-date" class="form-input date-input" required>
-                <span id="date-weekday-badge" class="date-weekday-badge">火曜日</span>
+            <!-- クイック時刻プリセットバー -->
+            <div class="quick-presets-wrapper">
+              <span class="quick-presets-label">⚡ クイック選択:</span>
+              <div class="quick-presets-list">
+                <button type="button" class="preset-pill-btn" data-preset="in-30m">+30分後</button>
+                <button type="button" class="preset-pill-btn" data-preset="in-1h">+1時間後</button>
+                <button type="button" class="preset-pill-btn" data-preset="tonight">今夜 20:00</button>
+                <button type="button" class="preset-pill-btn" data-preset="tomorrow-morning">明日 朝 09:00</button>
+                <button type="button" class="preset-pill-btn" data-preset="tomorrow-noon">明日 昼 12:00</button>
+                <button type="button" class="preset-pill-btn" data-preset="tomorrow-evening">明日 夜 19:00</button>
               </div>
             </div>
 
-            <!-- Time Selection Group (Intuitive for PC & Mobile) -->
-            <div class="form-group">
-              <label>送信時刻 (JST 日本時間) <span class="required">*</span></label>
-              <div class="time-picker-grid">
-                <div class="time-select-block">
-                  <span class="time-block-label">時</span>
-                  <select id="select-hour" class="form-select time-select">
-                    <!-- 00 to 23 populated by JS -->
-                  </select>
+            <!-- 日時ピッカー レイアウト (2カラム / レスポンシブ) -->
+            <div class="datetime-picker-layout">
+              
+              <!-- 左側: 直感的な月間ミニカレンダー -->
+              <div class="picker-panel calendar-panel">
+                <div class="panel-header">
+                  <div class="panel-title">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z"/></svg>
+                    送信日を選択
+                  </div>
+                  <!-- Quick Date Select Pills -->
+                  <div class="quick-date-pills">
+                    <button type="button" class="date-pill-btn active" data-quick-date="today">今日</button>
+                    <button type="button" class="date-pill-btn" data-quick-date="tomorrow">明日</button>
+                    <button type="button" class="date-pill-btn" data-quick-date="after-tomorrow">明後日</button>
+                    <button type="button" class="date-pill-btn" data-quick-date="next-week">1週間後</button>
+                  </div>
                 </div>
-                <span class="time-colon">:</span>
-                <div class="time-select-block">
-                  <span class="time-block-label">分</span>
-                  <select id="select-minute" class="form-select time-select">
-                    <!-- 00 to 55 populated by JS -->
-                  </select>
+
+                <!-- Custom Calendar Widget -->
+                <div class="calendar-widget" id="calendar-widget">
+                  <div class="calendar-nav-bar">
+                    <button type="button" class="cal-nav-btn" id="cal-prev-month" title="前月">
+                      <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+                    </button>
+                    <div class="cal-month-label" id="cal-month-label">2026年 10月</div>
+                    <button type="button" class="cal-nav-btn" id="cal-next-month" title="次月">
+                      <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+                    </button>
+                  </div>
+
+                  <div class="cal-weekdays-row">
+                    <span class="cal-weekday">月</span>
+                    <span class="cal-weekday">火</span>
+                    <span class="cal-weekday">水</span>
+                    <span class="cal-weekday">木</span>
+                    <span class="cal-weekday">金</span>
+                    <span class="cal-weekday weekend">土</span>
+                    <span class="cal-weekday weekend">日</span>
+                  </div>
+
+                  <div class="cal-days-grid" id="cal-days-grid">
+                    <!-- Populated dynamically by JS -->
+                  </div>
                 </div>
-                <input type="time" id="input-time" class="time-native-hidden">
+
+                <!-- Hidden native input for compatibility & state -->
+                <input type="date" id="input-date" class="date-native-hidden">
+                <span id="date-weekday-badge" style="display: none;"></span>
               </div>
+
+              <!-- 右側: 直感的な時刻ピッカー (時計) -->
+              <div class="picker-panel time-panel">
+                <div class="panel-header">
+                  <div class="panel-title">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
+                    送信時刻を選択 (JST)
+                  </div>
+                  <span class="panel-sub-label" id="time-display-badge">15:00</span>
+                </div>
+
+                <!-- Large Digital Clock Display & Steppers -->
+                <div class="digital-clock-card">
+                  <div class="clock-unit" id="clock-unit-hour">
+                    <button type="button" class="clock-step-btn" id="hour-step-up" title="1時間進める">▲</button>
+                    <div class="clock-num" id="clock-num-hour">15</div>
+                    <button type="button" class="clock-step-btn" id="hour-step-down" title="1時間戻す">▼</button>
+                    <span class="clock-unit-tag">時</span>
+                  </div>
+                  <span class="clock-colon">:</span>
+                  <div class="clock-unit" id="clock-unit-minute">
+                    <button type="button" class="clock-step-btn" id="minute-step-up" title="5分進める">▲</button>
+                    <div class="clock-num" id="clock-num-minute">00</div>
+                    <button type="button" class="clock-step-btn" id="minute-step-down" title="5分戻す">▼</button>
+                    <span class="clock-unit-tag">分</span>
+                  </div>
+                </div>
+
+                <!-- Hour Selector (AM / PM segment toggle + chips) -->
+                <div class="hour-selector-section">
+                  <div class="selector-sub-header">
+                    <span>時（タップで即時変更）:</span>
+                    <div class="period-toggle">
+                      <button type="button" class="period-btn active" id="btn-period-pm" data-period="pm">午後 (12〜23時)</button>
+                      <button type="button" class="period-btn" id="btn-period-am" data-period="am">午前 (0〜11時)</button>
+                    </div>
+                  </div>
+                  <div class="hour-chips-grid" id="hour-chips-grid">
+                    <!-- Populated dynamically by JS -->
+                  </div>
+                </div>
+
+                <!-- Minute Selector (5分刻みクイックチップ) -->
+                <div class="minute-selector-section">
+                  <div class="selector-sub-header">
+                    <span>分（タップで即時変更）:</span>
+                    <span class="minute-hint">5分刻み</span>
+                  </div>
+                  <div class="minute-chips-grid" id="minute-chips-grid">
+                    <!-- Populated dynamically by JS -->
+                  </div>
+                </div>
+
+                <!-- Hidden native time input for fallback/state -->
+                <input type="time" id="input-time" class="time-native-hidden">
+                <select id="select-hour" style="display: none;"></select>
+                <select id="select-minute" style="display: none;"></select>
+              </div>
+
             </div>
 
             <!-- Recurrence Settings -->
-            <div class="form-group recurrence-group">
+            <div class="form-group recurrence-group" style="margin-top: 24px;">
               <label for="recurrence-type">繰り返し設定</label>
               <select id="recurrence-type" class="form-select">
                 <option value="none">1回のみ（繰り返さない）</option>
-                <option value="daily">毎日（同時刻）</option>
-                <option value="weekly">毎週（指定した曜日）</option>
+                <option value="daily">毎日（同時刻に送信）</option>
+                <option value="weekly">毎週（指定した曜日に送信）</option>
                 <option value="weekdays">平日のみ（月曜〜金曜）</option>
-                <option value="monthly">毎月（同じ日付）</option>
+                <option value="monthly">毎月（同じ日付に送信）</option>
               </select>
             </div>
 
@@ -387,7 +477,7 @@
               </div>
             </div>
 
-            <!-- Copy Reservation Code Button -->
+            <!-- Publish Actions: Copy Code & Download JSON -->
             <div class="publish-action-box">
               <button id="btn-copy-code" class="btn btn-primary btn-lg btn-copy-glow">
                 <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
@@ -395,19 +485,35 @@
                 </svg>
                 予約コードをコピー
               </button>
+              <button id="btn-download-json" class="btn btn-secondary btn-lg btn-download-file">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                  <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"/>
+                </svg>
+                💾 予約ファイル (.json) をダウンロード
+              </button>
             </div>
 
             <!-- Discord Guide Box -->
             <div class="discord-guide-box">
               <div class="guide-title">
                 <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
-                Discordでの適用手順
+                Discordでの適用手順（2通りの方法）
               </div>
-              <ol class="guide-steps">
-                <li>Discordで <code>/reserve</code> または <code>/予約</code> を実行</li>
-                <li>表示されたパネルの <strong>「予約コードを入力」</strong> ボタンを押す</li>
-                <li>コピーしたコードを貼り付けて送信すると予約完了！</li>
-              </ol>
+              <div class="guide-method">
+                <div class="guide-method-title">💡 方法1: ファイル添付で一発登録（おすすめ・長文でも安心）</div>
+                <ol class="guide-steps">
+                  <li>上の <strong>「予約ファイルをダウンロード」</strong> で <code>discord_reservation.json</code> を保存</li>
+                  <li>Discordで <code>/booking_message file: [ダウンロードしたファイル]</code> を実行するだけで即時予約完了！</li>
+                </ol>
+              </div>
+              <div class="guide-method">
+                <div class="guide-method-title">📋 方法2: 予約コードを貼り付け</div>
+                <ol class="guide-steps">
+                  <li>上の <strong>「予約コードをコピー」</strong> ボタンを押す</li>
+                  <li>Discordで <code>/booking_message</code> を実行（引数なし）</li>
+                  <li>表示されたパネルの <strong>「予約コードを入力」</strong> を押し、貼り付けて送信すると予約完了！</li>
+                </ol>
+              </div>
             </div>
           </section>
 
@@ -540,16 +646,23 @@
       </div>
     </main>
 
-    <!-- Modal: Import from Code -->
+    <!-- Modal: Import from Code or JSON File -->
     <div id="import-modal" class="modal-overlay" style="display: none;">
       <div class="modal-card">
         <div class="modal-header">
-          <h3>予約コードの読込</h3>
+          <h3>予約設定の読み込み</h3>
           <button id="modal-close-btn" class="modal-close">&times;</button>
         </div>
         <div class="modal-body">
-          <p class="modal-desc">予約コード（<code>RSV1_...</code>）を貼り付けると設定内容を読み込みます。</p>
-          <textarea id="import-code-input" class="form-textarea code-input" rows="6" placeholder="RSV1_..."></textarea>
+          <p class="modal-desc">予約コード（<code>RSV1_...</code>）やJSONデータを貼り付けるか、ファイルを選択してください。</p>
+          <div class="modal-file-upload-row">
+            <label class="btn btn-secondary btn-sm modal-file-label" style="cursor: pointer;">
+              <input type="file" id="modal-file-input" accept=".json,.txt" style="display: none;">
+              <span>📁 JSONファイルを選択</span>
+            </label>
+            <span id="modal-file-status" class="modal-file-status"></span>
+          </div>
+          <textarea id="import-code-input" class="form-textarea code-input" rows="5" placeholder="RSV1_... または JSONテキストを貼り付け"></textarea>
           <div id="import-error-msg" class="modal-error" style="display: none;"></div>
         </div>
         <div class="modal-footer">

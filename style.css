@@ -285,36 +285,77 @@ body {
   color: var(--text-muted);
 }
 
-/* Schedule Summary Highlight Card */
+/* Schedule Summary Highlight Card (Enterprise SaaS Style) */
 .schedule-summary-card {
-  background: linear-gradient(135deg, rgba(88, 101, 242, 0.15) 0%, rgba(35, 36, 40, 0.6) 100%);
-  border: 1px solid rgba(88, 101, 242, 0.35);
+  background: linear-gradient(135deg, rgba(88, 101, 242, 0.18) 0%, rgba(35, 36, 40, 0.85) 100%);
+  border: 1px solid rgba(88, 101, 242, 0.4);
   border-radius: var(--radius-md);
-  padding: 14px 18px;
+  padding: 16px 20px;
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  position: relative;
+  overflow: hidden;
 }
 
-.summary-card-icon {
-  font-size: 1.8rem;
+.schedule-summary-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: var(--brand-primary);
+}
+
+.summary-card-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(88, 101, 242, 0.25);
+  border: 1px solid rgba(88, 101, 242, 0.5);
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+}
+
+.summary-pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--brand-green);
+  box-shadow: 0 0 8px var(--brand-green);
+  animation: pulse-dot 2s infinite;
+}
+
+@keyframes pulse-dot {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(87, 242, 135, 0.7); }
+  70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(87, 242, 135, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(87, 242, 135, 0); }
+}
+
+.summary-badge-text {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.04em;
 }
 
 .summary-card-info {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
 }
 
 .summary-card-main {
-  font-size: 1.15rem;
-  font-weight: 700;
-  color: var(--text-header);
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #fff;
   letter-spacing: -0.01em;
 }
 
 .summary-card-sub {
-  font-size: 0.85rem;
+  font-size: 0.88rem;
   color: #8ea1e1;
   font-weight: 600;
 }
@@ -329,21 +370,115 @@ body {
   font-weight: 600;
 }
 
-/* Quick Date Pills */
-.quick-date-pills {
+/* Quick Time Presets Bar */
+.quick-presets-wrapper {
   display: flex;
-  gap: 8px;
-  margin-bottom: 8px;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
   flex-wrap: wrap;
 }
 
-.date-pill-btn {
-  background: var(--bg-tertiary);
+.quick-presets-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.quick-presets-list {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.preset-pill-btn {
+  background: var(--bg-primary);
   border: 1px solid var(--border-subtle);
   color: var(--text-normal);
-  padding: 6px 14px;
+  padding: 4px 10px;
   border-radius: var(--radius-full);
-  font-size: 0.82rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.preset-pill-btn:hover {
+  border-color: var(--brand-primary);
+  color: #fff;
+  background: rgba(88, 101, 242, 0.15);
+  transform: translateY(-1px);
+}
+
+/* Datetime Picker Layout (Split / 2-Column Grid) */
+.datetime-picker-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 4px;
+}
+
+@media (max-width: 820px) {
+  .datetime-picker-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.picker-panel {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.panel-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text-header);
+}
+
+.panel-sub-label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--brand-primary);
+  background: rgba(88, 101, 242, 0.15);
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Quick Date Pills inside panel */
+.quick-date-pills {
+  display: flex;
+  gap: 4px;
+}
+
+.date-pill-btn {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-normal);
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.15s;
@@ -351,7 +486,7 @@ body {
 
 .date-pill-btn:hover {
   border-color: var(--brand-primary);
-  color: var(--text-header);
+  color: #fff;
 }
 
 .date-pill-btn.active {
@@ -360,64 +495,298 @@ body {
   color: #fff;
 }
 
-/* Date Input Wrapper & Weekday Badge */
-.date-input-wrapper {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.date-input {
-  flex: 1;
-}
-
-.date-weekday-badge {
-  background: var(--bg-primary);
-  border: 1px solid var(--border-subtle);
-  padding: 8px 14px;
-  border-radius: var(--radius-sm);
-  font-size: 0.88rem;
-  font-weight: 700;
-  color: var(--brand-yellow);
-}
-
-/* Time Picker Grid (Intuitive for PC & Mobile) */
-.time-picker-grid {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.time-select-block {
-  flex: 1;
+/* Custom Calendar Widget */
+.calendar-widget {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 8px;
 }
 
-.time-block-label {
-  font-size: 0.72rem;
+.calendar-nav-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 6px;
+}
+
+.cal-nav-btn {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-header);
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.cal-nav-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--brand-primary);
+}
+
+.cal-month-label {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-header);
+}
+
+.cal-weekdays-row {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 700;
   color: var(--text-muted);
+  padding: 4px 0;
+}
+
+.cal-weekday.weekend {
+  color: #8ea1e1;
+}
+
+.cal-days-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+}
+
+.cal-day-cell {
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
   font-weight: 600;
+  color: var(--text-normal);
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.12s;
+  position: relative;
+  background: transparent;
+  border: 1px solid transparent;
+}
+
+.cal-day-cell:hover:not(.disabled) {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.cal-day-cell.other-month {
+  color: #5d6269;
+}
+
+.cal-day-cell.disabled {
+  color: #43444b;
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.cal-day-cell.is-today::after {
+  content: '';
+  position: absolute;
+  bottom: 2px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--brand-green);
+}
+
+.cal-day-cell.is-selected {
+  background: var(--brand-primary) !important;
+  color: #fff !important;
+  font-weight: 800;
+  box-shadow: 0 2px 10px rgba(88, 101, 242, 0.5);
+  border-color: var(--brand-primary);
+}
+
+.cal-day-cell.is-selected.is-today::after {
+  background: #fff;
+}
+
+.date-native-hidden,
+.time-native-hidden {
+  display: none !important;
+}
+
+/* Digital Clock Card & Steppers */
+.digital-clock-card {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 12px 16px;
+}
+
+.clock-unit {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+.clock-step-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  cursor: pointer;
+  padding: 2px 8px;
+  border-radius: 3px;
+  transition: all 0.12s;
+  line-height: 1;
+}
+
+.clock-step-btn:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.clock-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: var(--text-header);
+  line-height: 1.1;
+  min-width: 52px;
+  text-align: center;
+  user-select: none;
+}
+
+.clock-unit-tag {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--text-muted);
   text-transform: uppercase;
 }
 
-.time-select {
-  font-size: 1.1rem;
-  font-weight: 700;
-  padding: 8px 12px;
-  text-align: center;
+.clock-colon {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+  user-select: none;
 }
 
-.time-colon {
-  font-size: 1.5rem;
+/* Hour Selector & Period Toggle */
+.hour-selector-section,
+.minute-selector-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.selector-sub-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.78rem;
   font-weight: 700;
   color: var(--text-muted);
-  margin-top: 18px;
 }
 
-.time-native-hidden {
-  display: none;
+.period-toggle {
+  display: flex;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 2px;
+  gap: 2px;
+}
+
+.period-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+
+.period-btn.active {
+  background: var(--brand-primary);
+  color: #fff;
+}
+
+.hour-chips-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 4px;
+}
+
+.hour-chip {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-normal);
+  padding: 5px 0;
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.12s;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.hour-chip:hover {
+  border-color: var(--brand-primary);
+  color: #fff;
+}
+
+.hour-chip.active {
+  background: var(--brand-primary);
+  border-color: var(--brand-primary);
+  color: #fff;
+  box-shadow: 0 1px 6px rgba(88, 101, 242, 0.4);
+}
+
+.minute-hint {
+  font-size: 0.72rem;
+  color: var(--brand-yellow);
+}
+
+.minute-chips-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 4px;
+}
+
+.minute-chip {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-normal);
+  padding: 5px 0;
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.12s;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.minute-chip:hover {
+  border-color: var(--brand-primary);
+  color: #fff;
+}
+
+.minute-chip.active {
+  background: var(--brand-primary);
+  border-color: var(--brand-primary);
+  color: #fff;
+  box-shadow: 0 1px 6px rgba(88, 101, 242, 0.4);
 }
 
 /* Form Controls */
@@ -1269,6 +1638,19 @@ body {
   margin-bottom: 8px;
 }
 
+.modal-file-upload-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.modal-file-status {
+  font-size: 0.82rem;
+  color: #8ea1e1;
+  font-weight: 600;
+}
+
 .modal-error {
   background: rgba(237, 66, 69, 0.15);
   border: 1px solid var(--brand-red);
@@ -1283,6 +1665,34 @@ body {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
+}
+
+/* Field Sublabel & Help Text */
+.form-sublabel {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.field-help-text {
+  font-size: 0.74rem;
+  color: var(--text-muted);
+  font-style: italic;
+  margin-top: 2px;
+}
+
+.btn-download-file {
+  background: #2b2d31;
+  border: 1px solid #5865F2;
+  color: #fff;
+  transition: all 0.2s;
+}
+
+.btn-download-file:hover {
+  background: rgba(88, 101, 242, 0.2);
+  border-color: #7983f5;
+  box-shadow: 0 4px 14px rgba(88, 101, 242, 0.3);
 }
 
 /* Toast */
