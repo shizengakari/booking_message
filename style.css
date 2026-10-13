@@ -702,7 +702,7 @@ input, select, textarea {
   border: none;
   color: var(--text-muted);
   width: 100%;
-  height: 24px;
+  height: 26px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -710,6 +710,7 @@ input, select, textarea {
   z-index: 5;
   transition: all 0.15s ease;
   padding: 0;
+  touch-action: manipulation;
 }
 
 .picker-stepper:hover {
@@ -736,6 +737,8 @@ input, select, textarea {
   scroll-snap-type: y mandatory;
   scrollbar-width: none;
   -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
   padding: 47px 0;
   display: flex;
   flex-direction: column;
@@ -1554,10 +1557,41 @@ input, select, textarea {
   width: fit-content;
 }
 
+.download-btn-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
 .btn-download-file-prominent {
   width: 100%;
   border-radius: var(--radius-md);
   box-shadow: 0 4px 16px var(--brand-primary-glow);
+  font-weight: 700;
+}
+
+.btn-download-json-sub {
+  width: 100%;
+  border-radius: var(--radius-md);
+  font-size: 0.92rem;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-primary);
+}
+
+.btn-download-json-sub:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--brand-primary);
+}
+
+.download-card-compress-hint {
+  font-size: 0.8rem;
+  color: #a8bbf9;
+  background: rgba(88, 101, 242, 0.12);
+  border: 1px solid rgba(88, 101, 242, 0.3);
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  line-height: 1.4;
 }
 
 .download-card-hint {
@@ -2239,5 +2273,64 @@ input, select, textarea {
   .wizard-step-btn {
     padding: 4px 10px;
     font-size: 0.82rem;
+  }
+}
+
+/* Discord Spoiler Styling */
+.discord-spoiler {
+  background: #2b2d31;
+  color: transparent;
+  border-radius: 3px;
+  padding: 0 4px;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.15s ease;
+}
+
+.discord-spoiler:hover,
+.discord-spoiler.revealed {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-normal);
+  user-select: text;
+}
+
+@media (max-width: 600px) {
+  .app-header {
+    padding: 8px 12px;
+  }
+
+  .logo-title {
+    font-size: 1.02rem;
+  }
+
+  .wizard-nav {
+    justify-content: center;
+    gap: 8px;
+    padding: 6px 8px;
+  }
+
+  .wizard-step-btn .step-label {
+    display: none;
+  }
+
+  .wizard-step-btn.active .step-label {
+    display: inline;
+  }
+
+  .wizard-divider {
+    width: 10px;
+  }
+
+  .datetime-card {
+    padding: 10px;
+  }
+
+  .primary-download-card {
+    padding: 14px;
+  }
+
+  .btn-xl {
+    padding: 12px 16px;
+    font-size: 0.95rem;
   }
 }

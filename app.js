@@ -157,6 +157,8 @@
     reviewImage: document.getElementById('review-image'),
     reviewButtonsCount: document.getElementById('review-buttons-count'),
     btnDownloadJson: document.getElementById('btn-download-json'),
+    btnDownloadRsv: document.getElementById('btn-download-rsv'),
+    downloadCompressionHint: document.getElementById('download-compression-hint'),
     btnCopyCode: document.getElementById('btn-copy-code'),
     copyCodeWarning: document.getElementById('copy-code-warning'),
 
@@ -296,6 +298,28 @@
     return { fullText, relativeText, isPast, weekdayFull: WEEKDAYS_FULL_JP[adjustedIdx] };
   }
 
+  function updateQuickDatePills() {
+    if (!el.quickDatePills) return;
+    const jstNow = getJSTNow();
+    const todayYMD = formatYMD(jstNow);
+    const tomorrow = new Date(jstNow); tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowYMD = formatYMD(tomorrow);
+    const afterTomorrow = new Date(jstNow); afterTomorrow.setDate(afterTomorrow.getDate() + 2);
+    const afterTomorrowYMD = formatYMD(afterTomorrow);
+    const nextWeek = new Date(jstNow); nextWeek.setDate(nextWeek.getDate() + 7);
+    const nextWeekYMD = formatYMD(nextWeek);
+
+    el.quickDatePills.forEach(pill => {
+      const mode = pill.dataset.quickDate;
+      let isMatch = false;
+      if (mode === 'today' && state.date === todayYMD) isMatch = true;
+      else if (mode === 'tomorrow' && state.date === tomorrowYMD) isMatch = true;
+      else if (mode === 'after-tomorrow' && state.date === afterTomorrowYMD) isMatch = true;
+      else if (mode === 'next-week' && state.date === nextWeekYMD) isMatch = true;
+      pill.classList.toggle('active', isMatch);
+    });
+  }
+
   function updateScheduleSummaryCard() {
     const info = formatHumanReadableDateTime(state.date, state.time);
     if (!info.fullText) {
@@ -359,6 +383,7 @@
           state.date = ymd;
           if (el.inputDate) el.inputDate.value = state.date;
           renderCalendar();
+          updateQuickDatePills();
           updateScheduleSummaryCard();
           renderPreview();
         });
@@ -623,7 +648,7 @@
 
       updateImageDropzoneUI(targetType);
       renderPreview();
-      showToast(`✅ ${file.name} を読み込みました（Base64暗号化完了）`);
+      showToast(`✅ ${file.name} を読み込みました（高画質Base64変換完了）`);
     };
 
     reader.onerror = () => {
@@ -1091,6 +1116,10 @@
     if (el.copyCodeWarning) {
       el.copyCodeWarning.style.display = activeImageState.image_data ? 'block' : 'none';
     }
+
+    if (el.downloadCompressionHint) {
+      el.downloadCompressionHint.style.display = activeImageState.image_data ? 'block' : 'none';
+    }
   }
 
   // --- Discord Markdown Parser ---
@@ -1129,6 +1158,9 @@
 
     // Strikethrough: ~~text~~
     out = out.replace(/~~([^~]+)~~/g, '<del>$1</del>');
+
+    // Spoilers: ||text||
+    out = out.replace(/\|\|([^|]+)\|\|/g, '<span class="discord-spoiler" title="クリックで表示" onclick="this.classList.toggle(\'revealed\')">$1</span>');
 
     // Links: [text](url)
     out = out.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
@@ -1562,6 +1594,7 @@
 
           jumpCalendarToDate(state.date);
           syncIosWheelPicker(state.time, true);
+          updateQuickDatePills();
           updateScheduleSummaryCard();
           renderPreview();
           showToast(`⚡ 日時を ${state.date} ${state.time} に設定しました`);
@@ -1574,9 +1607,6 @@
       el.quickDatePills.forEach(pill => {
         pill.addEventListener('click', (e) => {
           e.preventDefault();
-          el.quickDatePills.forEach(p => p.classList.remove('active'));
-          pill.classList.add('active');
-
           const mode = pill.dataset.quickDate;
           const jstNow = getJSTNow();
           let target = new Date(jstNow);
@@ -1594,6 +1624,7 @@
           state.date = formatYMD(target);
           if (el.inputDate) el.inputDate.value = state.date;
           jumpCalendarToDate(state.date);
+          updateQuickDatePills();
           updateScheduleSummaryCard();
           renderPreview();
         });
@@ -1641,6 +1672,20 @@
       el.messageTypeInputs.forEach(radio => {
         radio.addEventListener('change', (e) => {
           state.messageType = e.target.value;
+
+          // 画像の引き継ぎ (未設定側へ既存画像を自動同期)
+          if (state.messageType === 'plain' && !state.plain.image_data && state.embed.image_data) {
+            state.plain.image_data = state.embed.image_data;
+            state.plain.image_filename = state.embed.image_filename;
+            state.plain.image_size = state.embed.image_size;
+            updateImageDropzoneUI('plain');
+          } else if (state.messageType === 'embed' && !state.embed.image_data && state.plain.image_data) {
+            state.embed.image_data = state.plain.image_data;
+            state.embed.image_filename = state.plain.image_filename;
+            state.embed.image_size = state.plain.image_size;
+            updateImageDropzoneUI('embed');
+          }
+
           if (el.embedSettingsSection) el.embedSettingsSection.style.display = state.messageType === 'embed' ? 'block' : 'none';
           if (el.plainSettingsSection) el.plainSettingsSection.style.display = state.messageType === 'plain' ? 'block' : 'none';
           renderPreview();
@@ -1816,35 +1861,68 @@
       el.btnAddButton.addEventListener('click', addLinkButton);
     }
 
-    // 14. Step 3 Action: Download JSON File (Primary)
-    if (el.btnDownloadJson) {
-      el.btnDownloadJson.addEventListener('click', () => {
-        const info = formatHumanReadableDateTime(state.date, state.time);
-        if (info.isPast) {
-          showToast('⚠️ 過去の日時は予約できません');
-          goToStep(1);
-          return;
+    // 14. Step 3 Action: Download Files (.rsv compressed & .json standard)
+    const validateBeforeDownload = () => {
+      const info = formatHumanReadableDateTime(state.date, state.time);
+      if (info.isPast) {
+        showToast('⚠️ 過去の日時は予約できません');
+        goToStep(1);
+        return false;
+      }
+
+      if (state.messageType === 'plain') {
+        if (!state.plain.content.trim() && !state.plain.image_data && !state.plain.image_url.trim()) {
+          showToast('⚠️ メッセージ本文または画像を入力してください');
+          goToStep(2);
+          return false;
+        }
+      } else {
+        const hasContent = state.embed.title.trim() ||
+          state.embed.description.trim() ||
+          state.embed.image_data ||
+          state.embed.image_url.trim() ||
+          state.embed.fields.length > 0 ||
+          state.embed.author.name.trim();
+        if (!hasContent) {
+          showToast('⚠️ タイトル、説明文、または画像を入力してください');
+          goToStep(2);
+          return false;
+        }
+      }
+      return true;
+    };
+
+    if (el.btnDownloadRsv) {
+      el.btnDownloadRsv.addEventListener('click', () => {
+        if (!validateBeforeDownload()) return;
+
+        const payload = buildPayload();
+        const jsonStr = JSON.stringify(payload);
+        const utf8Bytes = new TextEncoder().encode(jsonStr);
+        let blob;
+        if (typeof window.pako !== 'undefined') {
+          const compressed = window.pako.deflate(utf8Bytes);
+          blob = new Blob([compressed], { type: 'application/octet-stream' });
+        } else {
+          blob = new Blob([utf8Bytes], { type: 'application/octet-stream' });
         }
 
-        if (state.messageType === 'plain') {
-          if (!state.plain.content.trim() && !state.plain.image_data && !state.plain.image_url.trim()) {
-            showToast('⚠️ メッセージ本文または画像を入力してください');
-            goToStep(2);
-            return;
-          }
-        } else {
-          const hasContent = state.embed.title.trim() ||
-            state.embed.description.trim() ||
-            state.embed.image_data ||
-            state.embed.image_url.trim() ||
-            state.embed.fields.length > 0 ||
-            state.embed.author.name.trim();
-          if (!hasContent) {
-            showToast('⚠️ タイトル、説明文、または画像を入力してください');
-            goToStep(2);
-            return;
-          }
-        }
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const timeClean = (state.time || '1400').replace(':', '');
+        a.download = `discord_reservation_${state.date}_${timeClean}.rsv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast('🗜️ 圧縮予約ファイル (.rsv) をダウンロードしました！');
+      });
+    }
+
+    if (el.btnDownloadJson) {
+      el.btnDownloadJson.addEventListener('click', () => {
+        if (!validateBeforeDownload()) return;
 
         const payload = buildPayload();
         const jsonStr = JSON.stringify(payload, null, 2);
@@ -1865,55 +1943,42 @@
     // 15. Step 3 Action: Copy RSV1 Code (Secondary)
     if (el.btnCopyCode) {
       el.btnCopyCode.addEventListener('click', () => {
-        const info = formatHumanReadableDateTime(state.date, state.time);
-        if (info.isPast) {
-          showToast('⚠️ 過去の日時は予約できません');
-          goToStep(1);
-          return;
-        }
-
-        if (state.messageType === 'plain') {
-          if (!state.plain.content.trim() && !state.plain.image_data && !state.plain.image_url.trim()) {
-            showToast('⚠️ メッセージ本文または画像を入力してください');
-            goToStep(2);
-            return;
-          }
-        } else {
-          const hasContent = state.embed.title.trim() ||
-            state.embed.description.trim() ||
-            state.embed.image_data ||
-            state.embed.image_url.trim() ||
-            state.embed.fields.length > 0 ||
-            state.embed.author.name.trim();
-          if (!hasContent) {
-            showToast('⚠️ タイトル、説明文、または画像を入力してください');
-            goToStep(2);
-            return;
-          }
-        }
+        if (!validateBeforeDownload()) return;
 
         const payload = buildPayload();
         const code = encodeReservationCode(payload);
 
-        if (code.length > 3800) {
-          showToast('⚠️ コード文字数が多いため、上の「予約ファイル(.json)をダウンロード」をお使いください');
-        }
+        const onCopySuccess = () => {
+          if (code.length > 3800) {
+            showToast(`⚠️ コピー完了（約${code.length}文字）。Discordモーダルの4,000文字制限を超える恐れがあるため「予約ファイルをダウンロード」を推奨します`);
+          } else {
+            showToast('📋 予約コードをコピーしました！Discordで貼り付けてください');
+          }
+        };
 
-        navigator.clipboard.writeText(code).then(() => {
-          showToast('📋 予約コードをコピーしました！Discordで貼り付けてください');
-        }).catch(() => {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(code).then(onCopySuccess).catch(() => {
+            const ta = document.createElement('textarea');
+            ta.value = code;
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+            onCopySuccess();
+          });
+        } else {
           const ta = document.createElement('textarea');
           ta.value = code;
           document.body.appendChild(ta);
           ta.select();
           document.execCommand('copy');
           document.body.removeChild(ta);
-          showToast('📋 予約コードをコピーしました！Discordで貼り付けてください');
-        });
+          onCopySuccess();
+        }
       });
     }
 
-    // 16. Modal: Import Code or JSON File
+    // 16. Modal: Import Code or JSON / RSV File
     if (el.btnOpenImport) {
       el.btnOpenImport.addEventListener('click', () => {
         if (el.importCodeInput) el.importCodeInput.value = '';
@@ -1940,13 +2005,35 @@
       el.modalFileInput.addEventListener('change', (e) => {
         const file = e.target.files && e.target.files[0];
         if (!file) return;
-        if (el.modalFileStatus) el.modalFileStatus.textContent = file.name;
+        if (el.modalFileStatus) {
+          el.modalFileStatus.textContent = `${file.name} (${formatFileSize(file.size)})`;
+        }
         const reader = new FileReader();
         reader.onload = (evt) => {
           try {
-            const text = evt.target.result;
-            if (el.importCodeInput) el.importCodeInput.value = text;
-            const data = decodeReservationCode(text);
+            const buffer = evt.target.result;
+            const uint8 = new Uint8Array(buffer);
+            let jsonText = null;
+
+            // 1. zlibバイナリ展開 (.rsv ファイル等)
+            if (typeof window.pako !== 'undefined') {
+              try {
+                const decompressed = window.pako.inflate(uint8);
+                jsonText = new TextDecoder('utf-8').decode(decompressed);
+              } catch (_) {
+                // Not zlib binary, fall through
+              }
+            }
+
+            // 2. UTF-8テキストデコード (.json, .txt, RSV1_コード等)
+            if (!jsonText) {
+              jsonText = new TextDecoder('utf-8').decode(uint8);
+            }
+
+            if (el.importCodeInput) {
+              el.importCodeInput.value = jsonText.length > 500 ? (jsonText.substring(0, 500) + '...') : jsonText;
+            }
+            const data = decodeReservationCode(jsonText);
             applyImportedData(data);
             el.importModal.style.display = 'none';
             showToast(`✅ ${file.name} を読み込みました！`);
@@ -1957,7 +2044,13 @@
             }
           }
         };
-        reader.readAsText(file);
+        reader.onerror = () => {
+          if (el.importErrorMsg) {
+            el.importErrorMsg.textContent = 'ファイルの読み取りに失敗しました。';
+            el.importErrorMsg.style.display = 'block';
+          }
+        };
+        reader.readAsArrayBuffer(file);
       });
     }
 

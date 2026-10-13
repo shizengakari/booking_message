@@ -604,17 +604,25 @@
 
             <!-- Publish Actions -->
             <div class="publish-action-box">
-              <!-- Primary Prominent Action: Download JSON -->
+              <!-- Primary Prominent Action: Download Files -->
               <div class="primary-download-card">
                 <div class="download-card-badge">⭐ おすすめ（長文・画像完全対応・文字数制限なし）</div>
-                <button id="btn-download-json" class="btn btn-primary btn-xl btn-download-file-prominent">
-                  <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
-                    <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"/>
-                  </svg>
-                  💾 予約ファイル (.json) をダウンロード
-                </button>
+                <div class="download-btn-group">
+                  <button id="btn-download-rsv" class="btn btn-primary btn-xl btn-download-file-prominent" title="zlib圧縮で容量大幅削減！Discord添付に最適">
+                    <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
+                      <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"/>
+                    </svg>
+                    🗜️ 圧縮ファイル (.rsv) をダウンロード (推奨・軽量)
+                  </button>
+                  <button id="btn-download-json" class="btn btn-secondary btn-lg btn-download-json-sub" title="標準テキストJSON形式">
+                    💾 標準ファイル (.json) をダウンロード
+                  </button>
+                </div>
+                <div id="download-compression-hint" class="download-card-compress-hint" style="display: none;">
+                  💡 Base64画像が含まれるため、.rsv（zlib圧縮）での保存によりファイルサイズを大幅に軽量化できます。
+                </div>
                 <div class="download-card-hint">
-                  Discordで <code>/booking_message file: [ファイル]</code> を実行するだけで即時予約完了！
+                  Discordで <code>/booking_message file: [ファイル]</code> を実行するだけで即時予約完了！（.rsv / .json どちらも対応）
                 </div>
               </div>
 
@@ -803,12 +811,12 @@
           <button id="modal-close-btn" class="modal-close">&times;</button>
         </div>
         <div class="modal-body">
-          <p class="modal-desc">予約ファイル（<code>.json</code>）を選択するか、予約コード（<code>RSV1_...</code>）を貼り付けてください。</p>
+          <p class="modal-desc">予約ファイル（<code>.json</code> / <code>.rsv</code>）を選択するか、予約コード（<code>RSV1_...</code>）を貼り付けてください。</p>
           
           <div class="modal-file-upload-row">
             <label class="btn btn-secondary btn-sm modal-file-label" style="cursor: pointer;">
-              <input type="file" id="modal-file-input" accept=".json,.txt" style="display: none;">
-              <span>📁 JSONファイルを選択</span>
+              <input type="file" id="modal-file-input" accept=".json,.rsv,.txt" style="display: none;">
+              <span>📁 予約ファイル (.json / .rsv) を選択</span>
             </label>
             <span id="modal-file-status" class="modal-file-status"></span>
           </div>
