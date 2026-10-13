@@ -2,14 +2,14 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Discord メッセージ予約</title>
   <meta name="description" content="Discord Bot連携メッセージ予約作成・リアルタイムプレビューWebアプリケーション">
   <meta name="theme-color" content="#5865f2">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20261013_v2">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css?v=20261013_v3">
   <!-- pako.js for fast zlib compression -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
 </head>
@@ -32,11 +32,11 @@
       </div>
 
       <div class="header-actions">
-        <button id="btn-open-import" class="btn btn-secondary btn-sm" title="既存の予約コードを読み込んで編集">
+        <button id="btn-open-import" class="btn btn-secondary btn-sm" title="既存の予約コードやファイルを読み込み">
           <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
-          コード読込
+          ファイル/コード読込
         </button>
-        <button id="btn-reset" class="btn btn-ghost btn-sm" title="設定をリセット">リセット</button>
+        <button id="btn-reset" class="btn btn-ghost btn-sm" title="設定を初期状態にリセット">リセット</button>
       </div>
     </header>
 
@@ -54,14 +54,20 @@
       <div class="wizard-divider"></div>
       <button type="button" class="wizard-step-btn" data-step="3">
         <span class="step-num">3</span>
-        <span class="step-label">確認・コード発行</span>
+        <span class="step-label">確認・保存</span>
       </button>
     </nav>
 
-    <!-- Mobile view toggle (Editor vs Preview) -->
+    <!-- Mobile View Switcher Tab Bar -->
     <div class="mobile-tab-bar">
-      <button id="tab-edit" class="mobile-tab-btn active" data-tab="editor">設定フォーム</button>
-      <button id="tab-preview" class="mobile-tab-btn" data-tab="preview">プレビュー</button>
+      <button id="tab-edit" class="mobile-tab-btn active" data-tab="editor">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+        設定フォーム
+      </button>
+      <button id="tab-preview" class="mobile-tab-btn" data-tab="preview">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+        リアルタイムプレビュー
+      </button>
     </div>
 
     <!-- Main Workspace -->
@@ -79,16 +85,16 @@
               <span class="section-subtitle">メッセージをいつ送信するか指定します</span>
             </div>
 
-            <!-- Selected Schedule Summary Bar (Sleek Modern SaaS Style) -->
+            <!-- Schedule Summary Bar -->
             <div class="schedule-summary-bar" id="schedule-summary-card">
               <div class="summary-status-badge">
                 <span class="summary-pulse-dot"></span>
                 <span class="summary-badge-text">送信予定</span>
               </div>
               <div class="summary-datetime-display">
-                <span class="summary-card-main" id="summary-card-main">2026年10月13日(火) 13:00 (JST)</span>
+                <span class="summary-card-main" id="summary-card-main">2026年10月13日(火) 14:00 (JST)</span>
                 <span class="summary-divider">·</span>
-                <span class="summary-card-sub" id="summary-card-sub">約 34分後</span>
+                <span class="summary-card-sub" id="summary-card-sub">約 30分後</span>
               </div>
             </div>
 
@@ -96,7 +102,20 @@
               ⚠️ 過去の日時が指定されています。未来の日時を指定してください。
             </div>
 
-            <!-- 送信日と送信時刻のコンパクト2カラムレイアウト -->
+            <!-- Quick Time Presets -->
+            <div class="quick-time-presets">
+              <span class="quick-presets-label">⚡ ワンタップ指定:</span>
+              <div class="quick-preset-chips">
+                <button type="button" class="preset-time-chip" data-preset="10m">+10分後</button>
+                <button type="button" class="preset-time-chip" data-preset="30m">+30分後</button>
+                <button type="button" class="preset-time-chip" data-preset="1h">+1時間後</button>
+                <button type="button" class="preset-time-chip" data-preset="tomorrow-9">明日の 09:00</button>
+                <button type="button" class="preset-time-chip" data-preset="tomorrow-12">明日の 12:00</button>
+                <button type="button" class="preset-time-chip" data-preset="tomorrow-20">明日の 20:00</button>
+              </div>
+            </div>
+
+            <!-- 送信日と送信時刻の2カラムレイアウト -->
             <div class="datetime-grid-compact">
               
               <!-- 送信日カード -->
@@ -110,6 +129,7 @@
                     <button type="button" class="date-pill-btn active" data-quick-date="today">今日</button>
                     <button type="button" class="date-pill-btn" data-quick-date="tomorrow">明日</button>
                     <button type="button" class="date-pill-btn" data-quick-date="after-tomorrow">明後日</button>
+                    <button type="button" class="date-pill-btn" data-quick-date="next-week">来週</button>
                   </div>
                 </div>
 
@@ -144,7 +164,7 @@
                     <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
                     <span>送信時刻 (JST)</span>
                   </div>
-                  <span class="time-preview-badge" id="time-display-badge">13:00</span>
+                  <span class="time-preview-badge" id="time-display-badge">14:00</span>
                 </div>
 
                 <!-- iOS アラーム風ドラムロール・ホイールピッカー -->
@@ -155,7 +175,7 @@
                     <!-- 上下グラデーションオーバーレイ -->
                     <div class="ios-picker-fade"></div>
 
-                    <!-- 時 カラム -->
+                    <!-- 時 カラム (00〜23) -->
                     <div class="ios-picker-col" id="col-hour">
                       <button type="button" class="picker-stepper picker-stepper-up" data-step-col="hour" data-dir="-1" title="1時間戻す">
                         <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"/></svg>
@@ -172,7 +192,7 @@
                     <!-- 区切りコロン -->
                     <div class="ios-picker-sep">:</div>
 
-                    <!-- 分 カラム -->
+                    <!-- 分 カラム (00〜59, デフォルト 00) -->
                     <div class="ios-picker-col" id="col-minute">
                       <button type="button" class="picker-stepper picker-stepper-up" data-step-col="minute" data-dir="-1" title="1分戻す">
                         <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"/></svg>
@@ -239,19 +259,32 @@
           <section class="card form-section">
             <div class="section-header">
               <h2>メッセージ形式</h2>
+              <span class="section-subtitle">Discordで送信する形式を選択します</span>
             </div>
 
             <div class="type-segmented-control">
               <label class="segment-option">
                 <input type="radio" name="message-type" value="embed" checked>
                 <div class="segment-card">
-                  <span class="segment-title">Embed（埋め込み）</span>
+                  <div class="segment-icon">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+                  </div>
+                  <div class="segment-info">
+                    <span class="segment-title">Embed（埋め込み）</span>
+                    <span class="segment-desc">枠線カラー・画像・フィールド・著者情報付きのリッチメッセージ</span>
+                  </div>
                 </div>
               </label>
               <label class="segment-option">
                 <input type="radio" name="message-type" value="plain">
                 <div class="segment-card">
-                  <span class="segment-title">通常テキスト</span>
+                  <div class="segment-icon">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/></svg>
+                  </div>
+                  <div class="segment-info">
+                    <span class="segment-title">通常テキスト</span>
+                    <span class="segment-desc">シンプルなDiscordチャットメッセージ（画像添付対応）</span>
+                  </div>
                 </div>
               </label>
             </div>
@@ -265,7 +298,7 @@
 
             <!-- Color settings -->
             <div class="form-group">
-              <label>枠線カラー</label>
+              <label class="form-label-bold">枠線カラー</label>
               <div class="color-picker-row">
                 <div class="color-preview-wrapper">
                   <input type="color" id="embed-color-picker" value="#5865F2">
@@ -287,47 +320,102 @@
             <!-- Title & URL -->
             <div class="form-row">
               <div class="form-group flex-1">
-                <label for="embed-title">タイトル</label>
+                <div class="label-with-counter">
+                  <label for="embed-title" class="form-label-bold">タイトル</label>
+                  <span class="char-count" id="embed-title-count">0 / 256</span>
+                </div>
                 <input type="text" id="embed-title" class="form-input" placeholder="タイトルを入力" maxlength="256">
               </div>
               <div class="form-group flex-1">
-                <label for="embed-title-url">タイトル URL</label>
-                <input type="url" id="embed-title-url" class="form-input" placeholder="https://...">
+                <label for="embed-title-url" class="form-label-bold">タイトル URL</label>
+                <input type="url" id="embed-title-url" class="form-input" placeholder="https://example.com">
               </div>
             </div>
 
             <!-- Description -->
             <div class="form-group">
-              <div class="label-with-hint">
-                <label for="embed-desc">説明文</label>
-                <span class="hint-tag">**太字** *斜体* `コード` [リンク](URL)</span>
+              <div class="label-with-counter">
+                <label for="embed-desc" class="form-label-bold">説明文</label>
+                <span class="char-count" id="embed-desc-count">0 / 4096</span>
+              </div>
+              <div class="markdown-toolbar" data-target="embed-desc">
+                <button type="button" class="md-btn" data-md="bold" title="太字 (**text**)"><strong>B</strong></button>
+                <button type="button" class="md-btn" data-md="italic" title="斜体 (*text*)"><em>I</em></button>
+                <button type="button" class="md-btn" data-md="code" title="インラインコード (`code`)"><code>&lt;&gt;</code></button>
+                <button type="button" class="md-btn" data-md="codeblock" title="コードブロック (```code```)"><code>{ }</code></button>
+                <button type="button" class="md-btn" data-md="link" title="リンク ([表示名](URL))">🔗</button>
+                <button type="button" class="md-btn" data-md="quote" title="引用 (&gt; text)">❞</button>
               </div>
               <textarea id="embed-desc" class="form-textarea" rows="4" placeholder="説明文を入力 (Markdown対応)" maxlength="4096"></textarea>
             </div>
 
-            <!-- Images & Upload -->
-            <div class="form-row">
-              <div class="form-group flex-1">
-                <label for="embed-thumbnail">サムネイル画像 URL (右上)</label>
-                <input type="url" id="embed-thumbnail" class="form-input" placeholder="https://.../thumb.png">
+            <!-- Drag & Drop Base64 Image Upload Zone (Embed Main Image) -->
+            <div class="form-group image-upload-group">
+              <div class="label-with-badge">
+                <label class="form-label-bold">メイン画像（下部）</label>
+                <span class="privacy-badge">
+                  <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/></svg>
+                  端末内Base64化・最高画質保護
+                </span>
               </div>
-              <div class="form-group flex-1">
-                <div class="label-with-action">
-                  <label for="embed-image">メイン画像 URL (下部)</label>
-                  <label class="file-upload-btn" title="手元の画像から自動でURLを取得">
-                    <input type="file" id="embed-image-file" accept="image/*" style="display: none;">
-                    <span>📁 ファイル選択 (自動URL化)</span>
-                  </label>
+
+              <div class="image-dropzone" id="embed-dropzone">
+                <!-- Empty state -->
+                <div class="dropzone-empty" id="embed-dropzone-empty">
+                  <div class="dropzone-icon">
+                    <svg viewBox="0 0 24 24" width="34" height="34" fill="currentColor">
+                      <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/>
+                    </svg>
+                  </div>
+                  <div class="dropzone-text-primary">画像をドラッグ＆ドロップ または クリックして選択</div>
+                  <div class="dropzone-text-secondary">PNG, JPG, GIF, WebP 対応（Ctrl+V でスクショ直接貼り付けも可能）</div>
+                  <div class="dropzone-privacy-note">
+                    <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+                    外部サーバーへ画像は一切送信されません（プライバシー完全保護）
+                  </div>
+                  <input type="file" id="embed-file-input" accept="image/*" class="dropzone-file-input">
                 </div>
-                <input type="url" id="embed-image" class="form-input" placeholder="https://.../banner.png">
-                <span id="embed-upload-status" class="upload-status-text"></span>
+
+                <!-- Loaded preview state -->
+                <div class="dropzone-loaded" id="embed-dropzone-loaded" style="display: none;">
+                  <div class="loaded-image-preview-wrap">
+                    <img id="embed-loaded-img" class="loaded-image-preview" alt="Preview">
+                  </div>
+                  <div class="loaded-image-meta">
+                    <div class="loaded-filename" id="embed-loaded-filename">image.png</div>
+                    <div class="loaded-filesize" id="embed-loaded-filesize">245 KB</div>
+                    <span class="loaded-status-tag">🔒 Base64添付済</span>
+                  </div>
+                  <button type="button" class="btn-remove-image" id="embed-btn-remove-img" title="画像を削除">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                    画像を削除
+                  </button>
+                </div>
               </div>
+
+              <!-- Fallback: External URL Accordion -->
+              <details class="url-fallback-details">
+                <summary>🔗 または 外部画像URLを直接入力</summary>
+                <div class="url-fallback-content">
+                  <input type="url" id="embed-image" class="form-input" placeholder="https://example.com/banner.png">
+                  <span class="field-help-text">Discord CDN等の画像リンクを直接指定したい場合のみ入力</span>
+                </div>
+              </details>
+            </div>
+
+            <!-- Thumbnail (Top Right) -->
+            <div class="form-group">
+              <label for="embed-thumbnail" class="form-label-bold">サムネイル画像 URL (右上)</label>
+              <input type="url" id="embed-thumbnail" class="form-input" placeholder="https://example.com/thumb.png">
             </div>
 
             <!-- Fields -->
             <div class="form-group">
               <div class="fields-header">
-                <label>フィールド (最大25個)</label>
+                <div>
+                  <label class="form-label-bold">フィールド (最大25個)</label>
+                  <span class="fields-subtitle">見出しと内容のペアを追加できます</span>
+                </div>
                 <button type="button" id="btn-add-field" class="btn btn-secondary btn-sm">+ フィールド追加</button>
               </div>
               <div id="fields-list" class="fields-container"></div>
@@ -335,7 +423,10 @@
 
             <!-- Author & Footer Accordions -->
             <details class="form-accordion">
-              <summary>著作者情報</summary>
+              <summary>
+                <span>著作者情報</span>
+                <span class="accordion-badge" id="author-badge" style="display: none;">設定中</span>
+              </summary>
               <div class="accordion-content">
                 <div class="form-row">
                   <div class="form-group flex-1">
@@ -355,7 +446,10 @@
             </details>
 
             <details class="form-accordion">
-              <summary>フッター情報</summary>
+              <summary>
+                <span>フッター情報</span>
+                <span class="accordion-badge" id="footer-badge" style="display: none;">設定中</span>
+              </summary>
               <div class="accordion-content">
                 <div class="form-row">
                   <div class="form-group flex-1">
@@ -377,22 +471,73 @@
               <h2>通常テキスト内容</h2>
             </div>
             <div class="form-group">
-              <div class="label-with-hint">
-                <label for="plain-content">メッセージ本文</label>
-                <span class="hint-tag">**太字** *斜体* `コード` [リンク](URL)</span>
+              <div class="label-with-counter">
+                <label for="plain-content" class="form-label-bold">メッセージ本文</label>
+                <span class="char-count" id="plain-content-count">0 / 2000</span>
               </div>
-              <textarea id="plain-content" class="form-textarea" rows="5" placeholder="送信するテキストを入力" maxlength="2000"></textarea>
+              <div class="markdown-toolbar" data-target="plain-content">
+                <button type="button" class="md-btn" data-md="bold" title="太字 (**text**)"><strong>B</strong></button>
+                <button type="button" class="md-btn" data-md="italic" title="斜体 (*text*)"><em>I</em></button>
+                <button type="button" class="md-btn" data-md="code" title="インラインコード (`code`)"><code>&lt;&gt;</code></button>
+                <button type="button" class="md-btn" data-md="codeblock" title="コードブロック (```code```)"><code>{ }</code></button>
+                <button type="button" class="md-btn" data-md="link" title="リンク ([表示名](URL))">🔗</button>
+                <button type="button" class="md-btn" data-md="quote" title="引用 (&gt; text)">❞</button>
+              </div>
+              <textarea id="plain-content" class="form-textarea" rows="5" placeholder="送信するテキストを入力 (Markdown対応)" maxlength="2000"></textarea>
             </div>
-            <div class="form-group">
-              <div class="label-with-action">
-                <label for="plain-image">添付画像 URL</label>
-                <label class="file-upload-btn" title="手元の画像から自動でURLを取得">
-                  <input type="file" id="plain-image-file" accept="image/*" style="display: none;">
-                  <span>📁 ファイル選択 (自動URL化)</span>
-                </label>
+
+            <!-- Drag & Drop Base64 Image Upload Zone (Plain Text) -->
+            <div class="form-group image-upload-group">
+              <div class="label-with-badge">
+                <label class="form-label-bold">添付画像</label>
+                <span class="privacy-badge">
+                  <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/></svg>
+                  端末内Base64化・最高画質保護
+                </span>
               </div>
-              <input type="url" id="plain-image" class="form-input" placeholder="https://.../photo.png">
-              <span id="plain-upload-status" class="upload-status-text"></span>
+
+              <div class="image-dropzone" id="plain-dropzone">
+                <!-- Empty state -->
+                <div class="dropzone-empty" id="plain-dropzone-empty">
+                  <div class="dropzone-icon">
+                    <svg viewBox="0 0 24 24" width="34" height="34" fill="currentColor">
+                      <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/>
+                    </svg>
+                  </div>
+                  <div class="dropzone-text-primary">画像をドラッグ＆ドロップ または クリックして選択</div>
+                  <div class="dropzone-text-secondary">PNG, JPG, GIF, WebP 対応（Ctrl+V でスクショ直接貼り付けも可能）</div>
+                  <div class="dropzone-privacy-note">
+                    <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+                    外部サーバーへ画像は一切送信されません（プライバシー完全保護）
+                  </div>
+                  <input type="file" id="plain-file-input" accept="image/*" class="dropzone-file-input">
+                </div>
+
+                <!-- Loaded preview state -->
+                <div class="dropzone-loaded" id="plain-dropzone-loaded" style="display: none;">
+                  <div class="loaded-image-preview-wrap">
+                    <img id="plain-loaded-img" class="loaded-image-preview" alt="Preview">
+                  </div>
+                  <div class="loaded-image-meta">
+                    <div class="loaded-filename" id="plain-loaded-filename">image.png</div>
+                    <div class="loaded-filesize" id="plain-loaded-filesize">245 KB</div>
+                    <span class="loaded-status-tag">🔒 Base64添付済</span>
+                  </div>
+                  <button type="button" class="btn-remove-image" id="plain-btn-remove-img" title="画像を削除">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                    画像を削除
+                  </button>
+                </div>
+              </div>
+
+              <!-- Fallback: External URL Accordion -->
+              <details class="url-fallback-details">
+                <summary>🔗 または 外部画像URLを直接入力</summary>
+                <div class="url-fallback-content">
+                  <input type="url" id="plain-image" class="form-input" placeholder="https://example.com/photo.png">
+                  <span class="field-help-text">Discord CDN等の画像リンクを直接指定したい場合のみ入力</span>
+                </div>
+              </details>
             </div>
           </section>
 
@@ -417,7 +562,7 @@
               ← 日時設定に戻る
             </button>
             <button type="button" class="btn btn-primary btn-step-next" data-next="3">
-              次へ: プレビュー＆発行
+              次へ: 確認＆保存
               <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M5 13h11.86l-5.43 5.43 1.42 1.42L21.14 12l-8.29-7.85-1.42 1.42L16.86 11H5v2z"/></svg>
             </button>
           </div>
@@ -430,7 +575,7 @@
           <section class="card form-section">
             <div class="section-header">
               <h2>予約内容の確認</h2>
-              <span class="section-subtitle">内容を確認して予約コードを生成します</span>
+              <span class="section-subtitle">内容を確認して予約ファイルまたはコードを発行します</span>
             </div>
 
             <!-- Confirmation Review Card -->
@@ -448,25 +593,43 @@
                 <span class="review-val" id="review-type">Embed</span>
               </div>
               <div class="review-row">
+                <span class="review-label">画像添付</span>
+                <span class="review-val" id="review-image">-</span>
+              </div>
+              <div class="review-row">
                 <span class="review-label">URLボタン</span>
                 <span class="review-val" id="review-buttons-count">0個</span>
               </div>
             </div>
 
-            <!-- Publish Actions: Copy Code & Download JSON -->
+            <!-- Publish Actions -->
             <div class="publish-action-box">
-              <button id="btn-copy-code" class="btn btn-primary btn-lg btn-copy-glow">
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-                  <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
-                </svg>
-                予約コードをコピー
-              </button>
-              <button id="btn-download-json" class="btn btn-secondary btn-lg btn-download-file">
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-                  <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"/>
-                </svg>
-                💾 予約ファイル (.json) をダウンロード
-              </button>
+              <!-- Primary Prominent Action: Download JSON -->
+              <div class="primary-download-card">
+                <div class="download-card-badge">⭐ おすすめ（長文・画像完全対応・文字数制限なし）</div>
+                <button id="btn-download-json" class="btn btn-primary btn-xl btn-download-file-prominent">
+                  <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
+                    <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"/>
+                  </svg>
+                  💾 予約ファイル (.json) をダウンロード
+                </button>
+                <div class="download-card-hint">
+                  Discordで <code>/booking_message file: [ファイル]</code> を実行するだけで即時予約完了！
+                </div>
+              </div>
+
+              <!-- Secondary Action: Copy RSV1 Code -->
+              <div class="secondary-copy-card">
+                <button id="btn-copy-code" class="btn btn-secondary btn-lg btn-copy-code-alt">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                    <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
+                  </svg>
+                  予約コードをコピー (RSV1)
+                </button>
+                <div id="copy-code-warning" class="copy-warning-text" style="display: none;">
+                  ⚠️ 画像が含まれるためコードが長くなります。Discordのモーダル文字数制限(4000文字)を超える場合は上の「予約ファイルをダウンロード」をお使いください。
+                </div>
+              </div>
             </div>
 
             <!-- Discord Guide Box -->
@@ -475,11 +638,15 @@
                 <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
                 Discordでの適用手順（2通りの方法）
               </div>
-              <div class="guide-method">
-                <div class="guide-method-title">💡 方法1: ファイル添付で一発登録（おすすめ・長文でも安心）</div>
+              <div class="guide-method recommended">
+                <div class="guide-method-title">
+                  <span class="method-tag">推奨</span>
+                  💡 方法1: ファイル添付で一発登録（画像・長文でも安心）
+                </div>
                 <ol class="guide-steps">
-                  <li>上の <strong>「予約ファイルをダウンロード」</strong> で <code>discord_reservation.json</code> を保存</li>
-                  <li>Discordで <code>/booking_message file: [ダウンロードしたファイル]</code> を実行するだけで即時予約完了！</li>
+                  <li>上の <strong>「予約ファイル (.json) をダウンロード」</strong> ボタンを押してファイルを保存</li>
+                  <li>Discordで <code>/booking_message</code> と入力し、<code>file:</code> 引数にダウンロードしたファイルを添付して送信！</li>
+                  <li>即時に確認メッセージとプレビューが表示され、予約が完了します</li>
                 </ol>
               </div>
               <div class="guide-method">
@@ -531,7 +698,7 @@
                 <div class="discord-message-meta">
                   <span class="discord-bot-name">予約Bot</span>
                   <span class="discord-bot-badge">BOT</span>
-                  <span id="preview-timestamp" class="discord-timestamp">今日 12:00</span>
+                  <span id="preview-timestamp" class="discord-timestamp">今日 14:00</span>
                   <span id="preview-recurrence-badge" class="discord-recurrence-tag">1回のみ</span>
                 </div>
 
@@ -586,7 +753,7 @@
                       <img id="preview-embed-footer-icon" class="embed-footer-icon" alt="" style="display: none;">
                       <span id="preview-embed-footer-text"></span>
                       <span class="embed-footer-dot">•</span>
-                      <span id="preview-embed-footer-time">今日 18:30</span>
+                      <span id="preview-embed-footer-time">今日 14:00</span>
                     </div>
 
                   </div>
@@ -622,6 +789,12 @@
       </div>
     </main>
 
+    <!-- Floating Mobile Preview Button (FAB) -->
+    <button type="button" id="mobile-preview-fab" class="mobile-preview-fab" aria-label="プレビューを切り替え">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+      <span id="mobile-fab-text">プレビューを見る</span>
+    </button>
+
     <!-- Modal: Import from Code or JSON File -->
     <div id="import-modal" class="modal-overlay" style="display: none;">
       <div class="modal-card">
@@ -630,7 +803,8 @@
           <button id="modal-close-btn" class="modal-close">&times;</button>
         </div>
         <div class="modal-body">
-          <p class="modal-desc">予約コード（<code>RSV1_...</code>）やJSONデータを貼り付けるか、ファイルを選択してください。</p>
+          <p class="modal-desc">予約ファイル（<code>.json</code>）を選択するか、予約コード（<code>RSV1_...</code>）を貼り付けてください。</p>
+          
           <div class="modal-file-upload-row">
             <label class="btn btn-secondary btn-sm modal-file-label" style="cursor: pointer;">
               <input type="file" id="modal-file-input" accept=".json,.txt" style="display: none;">
@@ -638,6 +812,7 @@
             </label>
             <span id="modal-file-status" class="modal-file-status"></span>
           </div>
+
           <textarea id="import-code-input" class="form-textarea code-input" rows="5" placeholder="RSV1_... または JSONテキストを貼り付け"></textarea>
           <div id="import-error-msg" class="modal-error" style="display: none;"></div>
         </div>
@@ -657,6 +832,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=20261013_v2"></script>
+  <script src="app.js?v=20261013_v3"></script>
 </body>
 </html>
