@@ -74,21 +74,13 @@
     quickDatePills: document.querySelectorAll('.date-pill-btn'),
     inputDate: document.getElementById('input-date'),
 
-    // Digital Clock & Time Picker
+    // Time Picker
     timeDisplayBadge: document.getElementById('time-display-badge'),
-    clockNumHour: document.getElementById('clock-num-hour'),
-    clockNumMinute: document.getElementById('clock-num-minute'),
-    hourStepUp: document.getElementById('hour-step-up'),
-    hourStepDown: document.getElementById('hour-step-down'),
-    minuteStepUp: document.getElementById('minute-step-up'),
-    minuteStepDown: document.getElementById('minute-step-down'),
-    btnPeriodPm: document.getElementById('btn-period-pm'),
-    btnPeriodAm: document.getElementById('btn-period-am'),
-    hourChipsGrid: document.getElementById('hour-chips-grid'),
-    minuteChipsGrid: document.getElementById('minute-chips-grid'),
-    inputTime: document.getElementById('input-time'),
     selectHour: document.getElementById('select-hour'),
     selectMinute: document.getElementById('select-minute'),
+    minPillBtns: document.querySelectorAll('.min-pill-btn'),
+    hourPresetPills: document.querySelectorAll('.hour-preset-pill'),
+    inputTime: document.getElementById('input-time'),
 
     // Recurrence
     recurrenceType: document.getElementById('recurrence-type'),
@@ -412,66 +404,70 @@
     renderCalendar();
   }
 
-  // --- Clock / Time Picker Logic ---
+  // --- Time Picker Logic ---
+  function initTimeSelects() {
+    if (!el.selectHour || !el.selectMinute) return;
+    el.selectHour.innerHTML = '';
+    for (let h = 0; h < 24; h++) {
+      const val = String(h).padStart(2, '0');
+      const opt = document.createElement('option');
+      opt.value = val;
+      opt.textContent = `${val}時`;
+      el.selectHour.appendChild(opt);
+    }
+
+    el.selectMinute.innerHTML = '';
+    for (let m = 0; m < 60; m += 5) {
+      const val = String(m).padStart(2, '0');
+      const opt = document.createElement('option');
+      opt.value = val;
+      opt.textContent = `${val}分`;
+      el.selectMinute.appendChild(opt);
+    }
+  }
+
   function renderTimePicker() {
-    if (!el.clockNumHour || !el.clockNumMinute) return;
     if (!state.time) state.time = '12:00';
     const [hStr, mStr] = state.time.split(':');
-    let h = parseInt(hStr, 10);
-    let m = parseInt(mStr, 10);
-    if (isNaN(h)) h = 12;
-    if (isNaN(m)) m = 0;
 
-    // Digital display
-    el.clockNumHour.textContent = String(h).padStart(2, '0');
-    el.clockNumMinute.textContent = String(m).padStart(2, '0');
     if (el.timeDisplayBadge) {
-      el.timeDisplayBadge.textContent = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+      el.timeDisplayBadge.textContent = `${hStr}:${mStr}`;
     }
 
-    // Period toggle
-    clockPeriod = (h >= 12) ? 'pm' : 'am';
-    if (el.btnPeriodPm) el.btnPeriodPm.classList.toggle('active', clockPeriod === 'pm');
-    if (el.btnPeriodAm) el.btnPeriodAm.classList.toggle('active', clockPeriod === 'am');
-
-    // Hour chips
-    renderHourChips(h);
-
-    // Minute chips
-    renderMinuteChips(m);
-  }
-
-  function renderHourChips(activeHour) {
-    if (!el.hourChipsGrid) return;
-    el.hourChipsGrid.innerHTML = '';
-    const startHour = (clockPeriod === 'pm') ? 12 : 0;
-    const endHour = startHour + 11;
-
-    for (let h = startHour; h <= endHour; h++) {
-      const chip = document.createElement('button');
-      chip.type = 'button';
-      chip.className = 'hour-chip' + (h === activeHour ? ' active' : '');
-      chip.textContent = `${h}時`;
-      chip.addEventListener('click', () => {
-        setHour(h);
-      });
-      el.hourChipsGrid.appendChild(chip);
+    if (el.selectHour) {
+      el.selectHour.value = hStr;
     }
-  }
 
-  function renderMinuteChips(activeMinute) {
-    if (!el.minuteChipsGrid) return;
-    el.minuteChipsGrid.innerHTML = '';
-    for (let m = 0; m < 60; m += 5) {
-      const chip = document.createElement('button');
-      chip.type = 'button';
-      const isMatch = (activeMinute === m) || (Math.abs(activeMinute - m) <= 2 && Math.round(activeMinute / 5) * 5 === m);
-      chip.className = 'minute-chip' + (isMatch ? ' active' : '');
-      chip.textContent = `${String(m).padStart(2, '0')}分`;
-      chip.addEventListener('click', () => {
-        setMinute(m);
+    if (el.selectMinute) {
+      let found = false;
+      for (let i = 0; i < el.selectMinute.options.length; i++) {
+        if (el.selectMinute.options[i].value === mStr) {
+          el.selectMinute.selectedIndex = i;
+          found = true;
+          break;
+        }
+      }
+      if (!found) {
+        const opt = document.createElement('option');
+        opt.value = mStr;
+        opt.textContent = `${mStr}分`;
+        el.selectMinute.appendChild(opt);
+        el.selectMinute.value = mStr;
+      }
+    }
+
+    // Update active state of minute pills
+    if (el.minPillBtns) {
+      el.minPillBtns.forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.min === mStr);
       });
-      el.minuteChipsGrid.appendChild(chip);
+    }
+
+    // Update active state of popular hours pills
+    if (el.hourPresetPills) {
+      el.hourPresetPills.forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.time === `${hStr}:${mStr}`);
+      });
     }
   }
 
@@ -487,33 +483,6 @@
   function setMinute(m) {
     const curH = state.time ? state.time.split(':')[0] : '12';
     state.time = `${curH}:${String(m).padStart(2, '0')}`;
-    el.inputTime.value = state.time;
-    renderTimePicker();
-    updateScheduleSummaryCard();
-    renderPreview();
-  }
-
-  function stepHour(delta) {
-    let [h, m] = (state.time || '12:00').split(':').map(Number);
-    h = (h + delta + 24) % 24;
-    state.time = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-    el.inputTime.value = state.time;
-    renderTimePicker();
-    updateScheduleSummaryCard();
-    renderPreview();
-  }
-
-  function stepMinute(delta) {
-    let [h, m] = (state.time || '12:00').split(':').map(Number);
-    m = m + delta;
-    if (m >= 60) {
-      m = 0;
-      h = (h + 1) % 24;
-    } else if (m < 0) {
-      m = 55;
-      h = (h - 1 + 24) % 24;
-    }
-    state.time = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
     el.inputTime.value = state.time;
     renderTimePicker();
     updateScheduleSummaryCard();
@@ -1362,26 +1331,37 @@
       el.calNextMonth.addEventListener('click', () => changeCalendarMonth(1));
     }
 
-    // 6. Digital Clock Steppers & Period Toggle
-    if (el.hourStepUp) el.hourStepUp.addEventListener('click', () => stepHour(1));
-    if (el.hourStepDown) el.hourStepDown.addEventListener('click', () => stepHour(-1));
-    if (el.minuteStepUp) el.minuteStepUp.addEventListener('click', () => stepMinute(5));
-    if (el.minuteStepDown) el.minuteStepDown.addEventListener('click', () => stepMinute(-5));
-
-    if (el.btnPeriodPm) {
-      el.btnPeriodPm.addEventListener('click', () => {
-        clockPeriod = 'pm';
-        let [h] = (state.time || '12:00').split(':').map(Number);
-        if (h < 12) h += 12;
-        setHour(h);
+    // 6. Time Picker (Select Hour & Minute)
+    if (el.selectHour) {
+      el.selectHour.addEventListener('change', (e) => {
+        setHour(e.target.value);
       });
     }
-    if (el.btnPeriodAm) {
-      el.btnPeriodAm.addEventListener('click', () => {
-        clockPeriod = 'am';
-        let [h] = (state.time || '12:00').split(':').map(Number);
-        if (h >= 12) h -= 12;
-        setHour(h);
+    if (el.selectMinute) {
+      el.selectMinute.addEventListener('change', (e) => {
+        setMinute(e.target.value);
+      });
+    }
+
+    // Quick minute pills (:00, :15, :30, :45)
+    if (el.minPillBtns) {
+      el.minPillBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          setMinute(btn.dataset.min);
+        });
+      });
+    }
+
+    // Popular hours pills (09:00, 12:00, 18:00, 20:00, 21:00)
+    if (el.hourPresetPills) {
+      el.hourPresetPills.forEach(btn => {
+        btn.addEventListener('click', () => {
+          state.time = btn.dataset.time;
+          el.inputTime.value = state.time;
+          renderTimePicker();
+          updateScheduleSummaryCard();
+          renderPreview();
+        });
       });
     }
 
@@ -1693,6 +1673,7 @@
 
   // --- Initialize App ---
   function init() {
+    initTimeSelects();
     initDefaults();
     parseQueryParams();
     renderEmbedFieldsList();

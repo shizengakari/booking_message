@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=20261013">
   <!-- pako.js for fast zlib compression -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
 </head>
@@ -108,45 +108,37 @@
               </div>
             </div>
 
-            <!-- 日時ピッカー レイアウト (2カラム / レスポンシブ) -->
-            <div class="datetime-picker-layout">
+            <!-- 送信日と送信時刻のコンパクト2カラムレイアウト -->
+            <div class="datetime-grid-compact">
               
-              <!-- 左側: 直感的な月間ミニカレンダー -->
-              <div class="picker-panel calendar-panel">
-                <div class="panel-header">
-                  <div class="panel-title">
+              <!-- 送信日カード -->
+              <div class="datetime-card">
+                <div class="datetime-card-header">
+                  <div class="card-title">
                     <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z"/></svg>
-                    送信日を選択
+                    送信日
                   </div>
-                  <!-- Quick Date Select Pills -->
                   <div class="quick-date-pills">
                     <button type="button" class="date-pill-btn active" data-quick-date="today">今日</button>
                     <button type="button" class="date-pill-btn" data-quick-date="tomorrow">明日</button>
                     <button type="button" class="date-pill-btn" data-quick-date="after-tomorrow">明後日</button>
-                    <button type="button" class="date-pill-btn" data-quick-date="next-week">1週間後</button>
                   </div>
                 </div>
 
-                <!-- Custom Calendar Widget -->
-                <div class="calendar-widget" id="calendar-widget">
-                  <div class="calendar-nav-bar">
+                <!-- コンパクトカレンダー -->
+                <div class="compact-calendar" id="compact-calendar">
+                  <div class="cal-nav-bar">
                     <button type="button" class="cal-nav-btn" id="cal-prev-month" title="前月">
-                      <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+                      <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
                     </button>
-                    <div class="cal-month-label" id="cal-month-label">2026年 10月</div>
+                    <span class="cal-month-label" id="cal-month-label">2026年 10月</span>
                     <button type="button" class="cal-nav-btn" id="cal-next-month" title="次月">
-                      <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+                      <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
                     </button>
                   </div>
 
-                  <div class="cal-weekdays-row">
-                    <span class="cal-weekday">月</span>
-                    <span class="cal-weekday">火</span>
-                    <span class="cal-weekday">水</span>
-                    <span class="cal-weekday">木</span>
-                    <span class="cal-weekday">金</span>
-                    <span class="cal-weekday weekend">土</span>
-                    <span class="cal-weekday weekend">日</span>
+                  <div class="cal-weekdays">
+                    <span>月</span><span>火</span><span>水</span><span>木</span><span>金</span><span class="weekend">土</span><span class="weekend">日</span>
                   </div>
 
                   <div class="cal-days-grid" id="cal-days-grid">
@@ -154,94 +146,91 @@
                   </div>
                 </div>
 
-                <!-- Hidden native input for compatibility & state -->
                 <input type="date" id="input-date" class="date-native-hidden">
-                <span id="date-weekday-badge" style="display: none;"></span>
               </div>
 
-              <!-- 右側: 直感的な時刻ピッカー (時計) -->
-              <div class="picker-panel time-panel">
-                <div class="panel-header">
-                  <div class="panel-title">
+              <!-- 送信時刻カード -->
+              <div class="datetime-card">
+                <div class="datetime-card-header">
+                  <div class="card-title">
                     <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
-                    送信時刻を選択 (JST)
+                    送信時刻 (JST)
                   </div>
-                  <span class="panel-sub-label" id="time-display-badge">15:00</span>
+                  <span class="time-preview-badge" id="time-display-badge">15:00</span>
                 </div>
 
-                <!-- Large Digital Clock Display & Steppers -->
-                <div class="digital-clock-card">
-                  <div class="clock-unit" id="clock-unit-hour">
-                    <button type="button" class="clock-step-btn" id="hour-step-up" title="1時間進める">▲</button>
-                    <div class="clock-num" id="clock-num-hour">15</div>
-                    <button type="button" class="clock-step-btn" id="hour-step-down" title="1時間戻す">▼</button>
-                    <span class="clock-unit-tag">時</span>
-                  </div>
-                  <span class="clock-colon">:</span>
-                  <div class="clock-unit" id="clock-unit-minute">
-                    <button type="button" class="clock-step-btn" id="minute-step-up" title="5分進める">▲</button>
-                    <div class="clock-num" id="clock-num-minute">00</div>
-                    <button type="button" class="clock-step-btn" id="minute-step-down" title="5分戻す">▼</button>
-                    <span class="clock-unit-tag">分</span>
-                  </div>
-                </div>
-
-                <!-- Hour Selector (AM / PM segment toggle + chips) -->
-                <div class="hour-selector-section">
-                  <div class="selector-sub-header">
-                    <span>時（タップで即時変更）:</span>
-                    <div class="period-toggle">
-                      <button type="button" class="period-btn active" id="btn-period-pm" data-period="pm">午後 (12〜23時)</button>
-                      <button type="button" class="period-btn" id="btn-period-am" data-period="am">午前 (0〜11時)</button>
+                <!-- 直感的な時刻セレクター（時・分・クイック分ボタン） -->
+                <div class="time-picker-box">
+                  <div class="time-select-pair">
+                    <div class="time-select-unit">
+                      <span class="time-unit-label">時 (0〜23)</span>
+                      <select id="select-hour" class="styled-time-select">
+                        <!-- Populated by JS: 00時 〜 23時 -->
+                      </select>
+                    </div>
+                    <span class="time-select-colon">:</span>
+                    <div class="time-select-unit">
+                      <span class="time-unit-label">分 (00〜55)</span>
+                      <select id="select-minute" class="styled-time-select">
+                        <!-- Populated by JS: 00分 〜 55分 -->
+                      </select>
                     </div>
                   </div>
-                  <div class="hour-chips-grid" id="hour-chips-grid">
-                    <!-- Populated dynamically by JS -->
+
+                  <!-- クイック分ショートカット (:00, :15, :30, :45) -->
+                  <div class="quick-minutes-row">
+                    <span class="quick-minutes-label">分ショートカット:</span>
+                    <div class="quick-minutes-pills">
+                      <button type="button" class="min-pill-btn" data-min="00">:00</button>
+                      <button type="button" class="min-pill-btn" data-min="15">:15</button>
+                      <button type="button" class="min-pill-btn" data-min="30">:30</button>
+                      <button type="button" class="min-pill-btn" data-min="45">:45</button>
+                    </div>
+                  </div>
+
+                  <!-- よく使う時間帯プリセットチップ -->
+                  <div class="popular-hours-row">
+                    <span class="popular-hours-label">定番時間帯:</span>
+                    <div class="popular-hours-pills">
+                      <button type="button" class="hour-preset-pill" data-time="09:00">朝 09:00</button>
+                      <button type="button" class="hour-preset-pill" data-time="12:00">昼 12:00</button>
+                      <button type="button" class="hour-preset-pill" data-time="18:00">夕 18:00</button>
+                      <button type="button" class="hour-preset-pill" data-time="20:00">夜 20:00</button>
+                      <button type="button" class="hour-preset-pill" data-time="21:00">夜 21:00</button>
+                    </div>
                   </div>
                 </div>
 
-                <!-- Minute Selector (5分刻みクイックチップ) -->
-                <div class="minute-selector-section">
-                  <div class="selector-sub-header">
-                    <span>分（タップで即時変更）:</span>
-                    <span class="minute-hint">5分刻み</span>
-                  </div>
-                  <div class="minute-chips-grid" id="minute-chips-grid">
-                    <!-- Populated dynamically by JS -->
-                  </div>
-                </div>
-
-                <!-- Hidden native time input for fallback/state -->
                 <input type="time" id="input-time" class="time-native-hidden">
-                <select id="select-hour" style="display: none;"></select>
-                <select id="select-minute" style="display: none;"></select>
               </div>
 
             </div>
 
-            <!-- Recurrence Settings -->
-            <div class="form-group recurrence-group" style="margin-top: 24px;">
-              <label for="recurrence-type">繰り返し設定</label>
-              <select id="recurrence-type" class="form-select">
-                <option value="none">1回のみ（繰り返さない）</option>
-                <option value="daily">毎日（同時刻に送信）</option>
-                <option value="weekly">毎週（指定した曜日に送信）</option>
-                <option value="weekdays">平日のみ（月曜〜金曜）</option>
-                <option value="monthly">毎月（同じ日付に送信）</option>
-              </select>
-            </div>
+            <!-- 繰り返し設定 -->
+            <div class="recurrence-box">
+              <div class="form-group">
+                <label for="recurrence-type">繰り返し設定</label>
+                <select id="recurrence-type" class="form-select styled-recurrence-select">
+                  <option value="none">1回のみ（繰り返さない）</option>
+                  <option value="daily">毎日（同時刻に送信）</option>
+                  <option value="weekly">毎週（指定した曜日に送信）</option>
+                  <option value="weekdays">平日のみ（月曜〜金曜）</option>
+                  <option value="monthly">毎月（同じ日付に送信）</option>
+                </select>
+              </div>
 
-            <!-- Day of week selector (visible if weekly) -->
-            <div id="weekly-days-container" class="weekly-days-box" style="display: none;">
-              <label>送信する曜日を選択:</label>
-              <div class="weekday-selector">
-                <label class="weekday-pill"><input type="checkbox" name="weekday" value="0"><span>月</span></label>
-                <label class="weekday-pill"><input type="checkbox" name="weekday" value="1"><span>火</span></label>
-                <label class="weekday-pill"><input type="checkbox" name="weekday" value="2"><span>水</span></label>
-                <label class="weekday-pill"><input type="checkbox" name="weekday" value="3"><span>木</span></label>
-                <label class="weekday-pill"><input type="checkbox" name="weekday" value="4"><span>金</span></label>
-                <label class="weekday-pill weekend"><input type="checkbox" name="weekday" value="5"><span>土</span></label>
-                <label class="weekday-pill weekend"><input type="checkbox" name="weekday" value="6"><span>日</span></label>
+              <!-- Day of week selector (visible if weekly) -->
+              <div id="weekly-days-container" class="weekly-days-box" style="display: none;">
+                <label class="weekly-days-label">送信する曜日を選択:</label>
+                <div class="weekday-selector">
+                  <label class="weekday-pill"><input type="checkbox" name="weekday" value="0"><span>月</span></label>
+                  <label class="weekday-pill"><input type="checkbox" name="weekday" value="1"><span>火</span></label>
+                  <label class="weekday-pill"><input type="checkbox" name="weekday" value="2"><span>水</span></label>
+                  <label class="weekday-pill"><input type="checkbox" name="weekday" value="3"><span>木</span></label>
+                  <label class="weekday-pill"><input type="checkbox" name="weekday" value="4"><span>金</span></label>
+                  <label class="weekday-pill weekend"><input type="checkbox" name="weekday" value="5"><span>土</span></label>
+                  <label class="weekday-pill weekend"><input type="checkbox" name="weekday" value="6"><span>日</span></label>
+                </div>
               </div>
             </div>
           </section>
@@ -681,6 +670,6 @@
     </div>
   </div>
 
-  <script src="app.js"></script>
+  <script src="app.js?v=20261013"></script>
 </body>
 </html>

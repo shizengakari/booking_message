@@ -34,6 +34,26 @@
   padding: 0;
 }
 
+button {
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+  user-select: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+input, select, textarea {
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  color: inherit;
+}
+
 body {
   font-family: 'Noto Sans JP', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   background-color: var(--bg-tertiary);
@@ -374,8 +394,8 @@ body {
 .quick-presets-wrapper {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 14px;
+  gap: 8px;
+  padding: 8px 12px;
   background: var(--bg-tertiary);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
@@ -383,7 +403,7 @@ body {
 }
 
 .quick-presets-label {
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   font-weight: 700;
   color: var(--text-muted);
   white-space: nowrap;
@@ -401,7 +421,7 @@ body {
   color: var(--text-normal);
   padding: 4px 10px;
   border-radius: var(--radius-full);
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -411,53 +431,52 @@ body {
   border-color: var(--brand-primary);
   color: #fff;
   background: rgba(88, 101, 242, 0.15);
-  transform: translateY(-1px);
 }
 
-/* Datetime Picker Layout (Split / 2-Column Grid) */
-.datetime-picker-layout {
+/* Datetime Compact Grid Layout (2 Columns) */
+.datetime-grid-compact {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  margin-top: 4px;
+  gap: 12px;
+  margin-top: 2px;
 }
 
-@media (max-width: 820px) {
-  .datetime-picker-layout {
+@media (max-width: 768px) {
+  .datetime-grid-compact {
     grid-template-columns: 1fr;
   }
 }
 
-.picker-panel {
+.datetime-card {
   background: var(--bg-tertiary);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
-  padding: 16px;
+  padding: 12px 14px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
-.panel-header {
+.datetime-card-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding-bottom: 8px;
+  padding-bottom: 6px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-.panel-title {
+.card-title {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 0.88rem;
+  font-size: 0.82rem;
   font-weight: 700;
   color: var(--text-header);
 }
 
-.panel-sub-label {
-  font-size: 0.85rem;
+.time-preview-badge {
+  font-size: 0.82rem;
   font-weight: 700;
   color: var(--brand-primary);
   background: rgba(88, 101, 242, 0.15);
@@ -466,7 +485,7 @@ body {
   font-family: 'JetBrains Mono', monospace;
 }
 
-/* Quick Date Pills inside panel */
+/* Quick Date Pills inside card */
 .quick-date-pills {
   display: flex;
   gap: 4px;
@@ -478,7 +497,7 @@ body {
   color: var(--text-normal);
   padding: 3px 8px;
   border-radius: var(--radius-sm);
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.15s;
@@ -495,26 +514,26 @@ body {
   color: #fff;
 }
 
-/* Custom Calendar Widget */
-.calendar-widget {
+/* Compact Calendar */
+.compact-calendar {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
 }
 
-.calendar-nav-bar {
+.cal-nav-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 4px 6px;
+  padding: 2px 4px;
 }
 
 .cal-nav-btn {
   background: var(--bg-primary);
   border: 1px solid var(--border-subtle);
   color: var(--text-header);
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
@@ -524,51 +543,49 @@ body {
 }
 
 .cal-nav-btn:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.1);
   border-color: var(--brand-primary);
 }
 
 .cal-month-label {
-  font-size: 0.95rem;
+  font-size: 0.85rem;
   font-weight: 700;
   color: var(--text-header);
 }
 
-.cal-weekdays-row {
+.cal-weekdays {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   text-align: center;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 700;
   color: var(--text-muted);
-  padding: 4px 0;
+  padding: 2px 0;
 }
 
-.cal-weekday.weekend {
+.cal-weekdays .weekend {
   color: #8ea1e1;
 }
 
 .cal-days-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 3px;
+  gap: 2px;
 }
 
 .cal-day-cell {
-  aspect-ratio: 1;
+  height: 26px;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
   border-radius: var(--radius-sm);
-  font-size: 0.85rem;
+  font-size: 0.78rem;
   font-weight: 600;
   color: var(--text-normal);
   cursor: pointer;
   user-select: none;
   transition: all 0.12s;
   position: relative;
-  background: transparent;
   border: 1px solid transparent;
 }
 
@@ -578,21 +595,21 @@ body {
 }
 
 .cal-day-cell.other-month {
-  color: #5d6269;
+  color: #4f545c;
 }
 
 .cal-day-cell.disabled {
-  color: #43444b;
+  color: #3f4147;
   cursor: not-allowed;
-  opacity: 0.45;
+  opacity: 0.4;
 }
 
 .cal-day-cell.is-today::after {
   content: '';
   position: absolute;
   bottom: 2px;
-  width: 4px;
-  height: 4px;
+  width: 3px;
+  height: 3px;
   border-radius: 50%;
   background: var(--brand-green);
 }
@@ -601,7 +618,7 @@ body {
   background: var(--brand-primary) !important;
   color: #fff !important;
   font-weight: 800;
-  box-shadow: 0 2px 10px rgba(88, 101, 242, 0.5);
+  box-shadow: 0 1px 6px rgba(88, 101, 242, 0.4);
   border-color: var(--brand-primary);
 }
 
@@ -614,179 +631,142 @@ body {
   display: none !important;
 }
 
-/* Digital Clock Card & Steppers */
-.digital-clock-card {
+/* Time Picker Box (Compact & Intuitive) */
+.time-picker-box {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.time-select-pair {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
-  background: var(--bg-primary);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm);
-  padding: 12px 16px;
+  gap: 8px;
+  padding: 6px 0;
 }
 
-.clock-unit {
+.time-select-unit {
   display: flex;
   flex-direction: column;
   align-items: center;
-  position: relative;
+  gap: 3px;
 }
 
-.clock-step-btn {
-  background: transparent;
-  border: none;
+.time-unit-label {
+  font-size: 0.68rem;
+  font-weight: 600;
   color: var(--text-muted);
-  font-size: 0.75rem;
-  cursor: pointer;
-  padding: 2px 8px;
-  border-radius: 3px;
-  transition: all 0.12s;
-  line-height: 1;
 }
 
-.clock-step-btn:hover {
-  color: #fff;
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.clock-num {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 2.2rem;
-  font-weight: 800;
+.styled-time-select {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
   color: var(--text-header);
-  line-height: 1.1;
-  min-width: 52px;
+  font-size: 1.15rem;
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  width: 84px;
   text-align: center;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.styled-time-select:focus,
+.styled-time-select:hover {
+  border-color: var(--brand-primary);
+  outline: none;
+}
+
+.time-select-colon {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--text-muted);
+  margin-top: 14px;
   user-select: none;
 }
 
-.clock-unit-tag {
+/* Quick Minutes Shortcut Row */
+.quick-minutes-row,
+.popular-hours-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.quick-minutes-label,
+.popular-hours-label {
   font-size: 0.7rem;
   font-weight: 700;
   color: var(--text-muted);
-  text-transform: uppercase;
+  white-space: nowrap;
 }
 
-.clock-colon {
+.quick-minutes-pills,
+.popular-hours-pills {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.min-pill-btn,
+.hour-preset-pill {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-normal);
+  padding: 3px 7px;
+  border-radius: var(--radius-sm);
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.12s;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 2rem;
-  font-weight: 800;
-  color: var(--text-muted);
-  margin-bottom: 12px;
-  user-select: none;
 }
 
-/* Hour Selector & Period Toggle */
-.hour-selector-section,
-.minute-selector-section {
+.min-pill-btn:hover,
+.hour-preset-pill:hover {
+  border-color: var(--brand-primary);
+  color: #fff;
+  background: rgba(88, 101, 242, 0.15);
+}
+
+.min-pill-btn.active,
+.hour-preset-pill.active {
+  background: var(--brand-primary);
+  border-color: var(--brand-primary);
+  color: #fff;
+}
+
+/* Recurrence Box */
+.recurrence-box {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.styled-recurrence-select {
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.weekly-days-box {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-.selector-sub-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 0.78rem;
+.weekly-days-label {
+  font-size: 0.75rem;
   font-weight: 700;
   color: var(--text-muted);
-}
-
-.period-toggle {
-  display: flex;
-  background: var(--bg-primary);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm);
-  padding: 2px;
-  gap: 2px;
-}
-
-.period-btn {
-  background: transparent;
-  border: none;
-  color: var(--text-muted);
-  font-size: 0.72rem;
-  font-weight: 700;
-  padding: 2px 8px;
-  border-radius: 3px;
-  cursor: pointer;
-  transition: all 0.12s;
-}
-
-.period-btn.active {
-  background: var(--brand-primary);
-  color: #fff;
-}
-
-.hour-chips-grid {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 4px;
-}
-
-.hour-chip {
-  background: var(--bg-primary);
-  border: 1px solid var(--border-subtle);
-  color: var(--text-normal);
-  padding: 5px 0;
-  border-radius: var(--radius-sm);
-  font-size: 0.8rem;
-  font-weight: 700;
-  text-align: center;
-  cursor: pointer;
-  transition: all 0.12s;
-  font-family: 'JetBrains Mono', monospace;
-}
-
-.hour-chip:hover {
-  border-color: var(--brand-primary);
-  color: #fff;
-}
-
-.hour-chip.active {
-  background: var(--brand-primary);
-  border-color: var(--brand-primary);
-  color: #fff;
-  box-shadow: 0 1px 6px rgba(88, 101, 242, 0.4);
-}
-
-.minute-hint {
-  font-size: 0.72rem;
-  color: var(--brand-yellow);
-}
-
-.minute-chips-grid {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 4px;
-}
-
-.minute-chip {
-  background: var(--bg-primary);
-  border: 1px solid var(--border-subtle);
-  color: var(--text-normal);
-  padding: 5px 0;
-  border-radius: var(--radius-sm);
-  font-size: 0.8rem;
-  font-weight: 700;
-  text-align: center;
-  cursor: pointer;
-  transition: all 0.12s;
-  font-family: 'JetBrains Mono', monospace;
-}
-
-.minute-chip:hover {
-  border-color: var(--brand-primary);
-  color: #fff;
-}
-
-.minute-chip.active {
-  background: var(--brand-primary);
-  border-color: var(--brand-primary);
-  color: #fff;
-  box-shadow: 0 1px 6px rgba(88, 101, 242, 0.4);
 }
 
 /* Form Controls */
