@@ -2,9 +2,9 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>メッセージ予約 - Discord</title>
-  <meta name="theme-color" content="#1e1f22">
+  <meta name="theme-color" content="#0d1117">
   <script>
     (function() {
       try {
@@ -18,264 +18,553 @@
   </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20261016_v4">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css?v=20261016_v5">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
 </head>
 <body>
-  <div class="app">
-    <!-- Header -->
-    <header class="header">
-      <div class="header-title">
-        <h1>メッセージ予約</h1>
-        <span id="channel-badge" class="badge" style="display: none;">#<span id="channel-name"></span></span>
+  <div class="app-container">
+    <!-- Global Header -->
+    <header class="app-header">
+      <div class="header-brand">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
+            <path d="M19.27 5.33C17.94 4.71 16.5 4.26 15 4a.09.09 0 0 0-.07.03c-.18.33-.39.76-.53 1.09a16.09 16.09 0 0 0-4.8 0c-.14-.34-.35-.76-.54-1.09-.01-.02-.04-.03-.07-.03-1.5.26-2.93.71-4.27 1.33-.01 0-.02.01-.03.02-2.72 4.07-3.47 8.03-3.1 11.95 0 .02.01.04.03.05 1.8 1.32 3.53 2.12 5.24 2.65.03.01.06 0 .07-.02.4-.55.76-1.13 1.07-1.74.02-.04 0-.08-.04-.09-.57-.22-1.11-.48-1.64-.78-.04-.02-.04-.08-.01-.11.11-.08.22-.17.33-.25.02-.02.05-.02.07-.01 3.44 1.57 7.15 1.57 10.55 0 .02-.01.05-.01.07.01.11.09.22.17.33.26.04.03.04.09-.01.11-.52.31-1.07.56-1.64.78-.04.01-.05.06-.04.09.32.61.68 1.19 1.07 1.74.02.02.04.03.07.02 1.72-.53 3.45-1.33 5.25-2.65.02-.01.03-.03.03-.05.44-4.53-.73-8.46-3.1-11.95-.01-.01-.02-.02-.04-.02zM8.52 14.91c-1.03 0-1.89-.95-1.89-2.12s.84-2.12 1.89-2.12c1.06 0 1.9.96 1.89 2.12 0 1.17-.84 2.12-1.89 2.12zm6.97 0c-1.03 0-1.89-.95-1.89-2.12s.84-2.12 1.89-2.12c1.06 0 1.9.96 1.89 2.12 0 1.17-.83 2.12-1.89 2.12z"/>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h1>メッセージ予約</h1>
+        </div>
       </div>
-      <div class="header-tools">
-        <button id="btn-theme" class="icon-btn" title="テーマ切り替え" aria-label="テーマ切り替え">
+      <div class="header-actions">
+        <button id="btn-theme-toggle" class="btn-icon" title="テーマ切り替え" aria-label="テーマ切り替え">
           <span id="theme-icon">🌙</span>
         </button>
-        <button id="btn-import-open" class="btn btn-sm">コード/ファイル読込</button>
-        <button id="btn-reset" class="btn btn-sm btn-ghost">リセット</button>
+        <button id="btn-import-open" class="btn btn-secondary btn-sm">
+          <svg viewBox="0 0 20 20" width="14" height="14" fill="currentColor"><path d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z"/></svg>
+          JSON読込
+        </button>
+        <button id="btn-reset" class="btn btn-ghost btn-sm">リセット</button>
       </div>
     </header>
 
-    <!-- Main Content -->
-    <main class="main-layout">
-      <!-- Form Column -->
-      <section class="form-col">
-        <!-- 1. 送信日時 & 繰り返し -->
-        <div class="card">
-          <div class="card-head">
-            <h2>1. 送信日時</h2>
-          </div>
-          <div class="row">
-            <div class="field">
-              <label for="input-date">日付</label>
-              <input type="date" id="input-date" required>
-            </div>
-            <div class="field">
-              <label for="input-time">時刻 (JST)</label>
-              <input type="time" id="input-time" required>
-            </div>
-          </div>
-          <div class="field mt-3">
-            <label for="select-recurrence">繰り返し</label>
-            <select id="select-recurrence">
-              <option value="none">1回のみ (繰り返しなし)</option>
-              <option value="daily">毎日</option>
-              <option value="weekdays">平日 (月〜金)</option>
-              <option value="weekly">毎週 (指定曜日)</option>
-              <option value="monthly">毎月 (指定日)</option>
-            </select>
-          </div>
-          <div id="weekly-days-group" class="field mt-2" style="display: none;">
-            <label>送信する曜日</label>
-            <div class="weekdays-select">
-              <label><input type="checkbox" name="weekday" value="0">月</label>
-              <label><input type="checkbox" name="weekday" value="1">火</label>
-              <label><input type="checkbox" name="weekday" value="2">水</label>
-              <label><input type="checkbox" name="weekday" value="3">木</label>
-              <label><input type="checkbox" name="weekday" value="4">金</label>
-              <label><input type="checkbox" name="weekday" value="5">土</label>
-              <label><input type="checkbox" name="weekday" value="6">日</label>
-            </div>
-          </div>
-          <div id="schedule-summary" class="schedule-summary"></div>
-        </div>
+    <!-- Stepper Navigation -->
+    <nav class="stepper-nav" aria-label="作成ステップ">
+      <button type="button" class="step-tab active" data-step="1">
+        <span class="step-badge">1</span>
+        <span class="step-info">
+          <span class="step-title">基本設定</span>
+          <span class="step-sub">チャンネル・送信日時</span>
+        </span>
+      </button>
+      <div class="step-arrow">
+        <svg viewBox="0 0 20 20" width="16" height="16" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/></svg>
+      </div>
+      <button type="button" class="step-tab" data-step="2">
+        <span class="step-badge">2</span>
+        <span class="step-info">
+          <span class="step-title">メッセージ作成</span>
+          <span class="step-sub">本文・Embed・プレビュー</span>
+        </span>
+      </button>
+      <div class="step-arrow">
+        <svg viewBox="0 0 20 20" width="16" height="16" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/></svg>
+      </div>
+      <button type="button" class="step-tab" data-step="3">
+        <span class="step-badge">3</span>
+        <span class="step-info">
+          <span class="step-title">保存・完了</span>
+          <span class="step-sub">JSON保存・登録案内</span>
+        </span>
+      </button>
+    </nav>
 
-        <!-- 2. メッセージ設定 -->
-        <div class="card">
-          <div class="card-head flex-between">
-            <h2>2. メッセージ内容</h2>
-            <div class="type-switch">
-              <button type="button" class="type-btn active" data-type="embed">Embed</button>
-              <button type="button" class="type-btn" data-type="plain">通常テキスト</button>
-            </div>
-          </div>
+    <!-- STEP PANES -->
+    <div class="step-panes-wrapper">
 
-          <!-- Embed Form -->
-          <div id="form-embed">
-            <div class="field">
-              <label for="embed-title">タイトル (任意)</label>
-              <input type="text" id="embed-title" placeholder="タイトルを入力" maxlength="256">
-            </div>
-            <div class="field mt-3">
-              <label for="embed-desc">説明文 / 本文 (Markdown対応)</label>
-              <textarea id="embed-desc" rows="6" placeholder="本文を入力してください..." maxlength="4096"></textarea>
-            </div>
-            <div class="row mt-3">
-              <div class="field">
-                <label for="embed-color">アクセントカラー</label>
-                <div class="color-picker-row">
-                  <input type="color" id="embed-color" value="#5865F2">
-                  <span id="embed-color-text" class="color-code">#5865F2</span>
-                </div>
+      <!-- =====================================================================
+           STEP 1: 基本設定 (送信先チャンネル・送信タイミング・繰り返し)
+           ===================================================================== -->
+      <section id="step-pane-1" class="step-pane active">
+        <div class="pane-content-narrow">
+
+          <!-- 1-1. 送信先チャンネル選択 -->
+          <div class="section-card">
+            <div class="card-header-row">
+              <div class="card-title-group">
+                <span class="card-step-num">A</span>
+                <h2>送信先チャンネル</h2>
               </div>
-              <div class="field">
-                <label for="embed-image">画像URL (任意)</label>
-                <input type="url" id="embed-image" placeholder="https://example.com/image.png">
+              <div class="channel-selection-badge">
+                <span id="selected-channel-count" class="badge-highlight">0</span> チャンネル選択中
               </div>
             </div>
 
-            <!-- Optional Embed Options (Collapsible) -->
-            <details class="accordion mt-3">
-              <summary>詳細設定 (作成者 / サムネイル / フッター / フィールド)</summary>
-              <div class="accordion-body">
-                <div class="field">
-                  <label for="embed-author-name">作成者名</label>
-                  <input type="text" id="embed-author-name" placeholder="Author name" maxlength="256">
-                </div>
-                <div class="row mt-2">
-                  <div class="field">
-                    <label for="embed-author-icon">作成者アイコンURL</label>
-                    <input type="url" id="embed-author-icon" placeholder="https://...">
-                  </div>
-                  <div class="field">
-                    <label for="embed-thumbnail">サムネイル画像URL</label>
-                    <input type="url" id="embed-thumbnail" placeholder="https://...">
-                  </div>
-                </div>
-                <div class="row mt-2">
-                  <div class="field">
-                    <label for="embed-footer">フッターテキスト</label>
-                    <input type="text" id="embed-footer" placeholder="Footer text" maxlength="2048">
-                  </div>
-                  <div class="field">
-                    <label for="embed-footer-icon">フッターアイコンURL</label>
-                    <input type="url" id="embed-footer-icon" placeholder="https://...">
-                  </div>
-                </div>
+            <!-- 選択中チャンネルのタグ一覧 -->
+            <div id="selected-channels-chips" class="selected-chips-container">
+              <!-- JSで選択中のタグを描画 -->
+            </div>
 
-                <!-- Custom Fields -->
-                <div class="mt-3">
-                  <div class="flex-between">
-                    <label>フィールド (項目)</label>
-                    <button type="button" id="btn-add-field" class="btn btn-sm btn-ghost">+ 項目追加</button>
-                  </div>
-                  <div id="fields-container" class="fields-list mt-2"></div>
-                </div>
+            <!-- チャンネル検索 & 操作ツールバー -->
+            <div class="channel-toolbar">
+              <div class="search-input-wrap">
+                <svg viewBox="0 0 20 20" width="16" height="16" fill="currentColor" class="search-icon">
+                  <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/>
+                </svg>
+                <input type="text" id="channel-search-input" placeholder="チャンネルを検索...">
+                <button type="button" id="btn-clear-search" class="clear-search-btn" style="display: none;">&times;</button>
+              </div>
+              <div class="toolbar-actions">
+                <button type="button" id="btn-select-all-channels" class="btn btn-ghost btn-xs">すべて選択</button>
+                <button type="button" id="btn-clear-all-channels" class="btn btn-ghost btn-xs">クリア</button>
+              </div>
+            </div>
+
+            <!-- チャンネル一覧スクロールエリア -->
+            <div id="channel-list-container" class="channel-list-scroll">
+              <!-- JSでカテゴリ別にグループ化して描画 -->
+              <div id="channel-empty-hint" class="empty-hint" style="display: none;">
+                該当するチャンネルが見つかりません
+              </div>
+            </div>
+
+            <!-- 手動チャンネル追加（Botからパラメータが届かなかった時のフォールバック） -->
+            <details id="manual-channel-details" class="manual-channel-accordion mt-2">
+              <summary>＋ チャンネルIDを直接指定する</summary>
+              <div class="manual-channel-box">
+                <input type="text" id="manual-channel-input" placeholder="チャンネルID (例: 123456789012345678)">
+                <button type="button" id="btn-add-manual-channel" class="btn btn-secondary btn-sm">追加</button>
               </div>
             </details>
           </div>
 
-          <!-- Plain Form -->
-          <div id="form-plain" style="display: none;">
-            <div class="field">
-              <div class="flex-between">
-                <label for="plain-text">メッセージ本文</label>
-                <span id="plain-char-count" class="char-count">0 / 2000</span>
+          <!-- 1-2. 送信タイミング (即時 / 日時指定) -->
+          <div class="section-card mt-4">
+            <div class="card-header-row">
+              <div class="card-title-group">
+                <span class="card-step-num">B</span>
+                <h2>送信タイミング</h2>
               </div>
-              <textarea id="plain-text" rows="8" placeholder="メッセージを入力してください..." maxlength="2000"></textarea>
             </div>
-            <div class="field mt-3">
-              <label for="plain-image">画像URL (任意)</label>
-              <input type="url" id="plain-image" placeholder="https://example.com/image.png">
+
+            <!-- 即時 vs 日時指定 セグメント選択 -->
+            <div class="timing-segmented-control">
+              <label class="timing-segment-item active" id="segment-scheduled-label">
+                <input type="radio" name="timing_mode" value="scheduled" checked>
+                <div class="segment-body">
+                  <span class="segment-icon">🕒</span>
+                  <div class="segment-text">
+                    <span class="segment-title">日時を指定して予約</span>
+                    <span class="segment-sub">指定した日時に自動送信</span>
+                  </div>
+                </div>
+              </label>
+
+              <label class="timing-segment-item" id="segment-immediate-label">
+                <input type="radio" name="timing_mode" value="immediate">
+                <div class="segment-body">
+                  <span class="segment-icon">⚡</span>
+                  <div class="segment-text">
+                    <span class="segment-title">即時送信</span>
+                    <span class="segment-sub">Bot登録後すぐに送信</span>
+                  </div>
+                </div>
+              </label>
+            </div>
+
+            <!-- 日時指定フォーム (即時モードでは非表示) -->
+            <div id="scheduled-datetime-section" class="datetime-inputs-area mt-3">
+              <!-- クイック時間プリセットチップ -->
+              <div class="quick-presets-row">
+                <span class="quick-presets-label">クイック設定:</span>
+                <div class="quick-presets-chips">
+                  <button type="button" class="chip-btn" data-minutes="10">+10分後</button>
+                  <button type="button" class="chip-btn" data-minutes="30">+30分後</button>
+                  <button type="button" class="chip-btn" data-minutes="60">+1時間後</button>
+                  <button type="button" class="chip-btn" data-target="tomorrow-9">明日 09:00</button>
+                  <button type="button" class="chip-btn" data-target="tomorrow-18">明日 18:00</button>
+                </div>
+              </div>
+
+              <!-- 日付・時刻インプット -->
+              <div class="datetime-grid mt-2">
+                <div class="input-card">
+                  <label for="input-date">日付</label>
+                  <div class="input-icon-wrap">
+                    <input type="date" id="input-date" required>
+                  </div>
+                </div>
+                <div class="input-card">
+                  <label for="input-time">時刻 (JST)</label>
+                  <div class="input-icon-wrap">
+                    <input type="time" id="input-time" required>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 相対時間プレビューバッジ -->
+              <div id="relative-time-badge" class="relative-time-banner mt-2">
+                <span class="banner-icon">ℹ️</span>
+                <span id="relative-time-text" class="banner-text">読み込み中...</span>
+              </div>
+            </div>
+
+            <!-- 即時送信時の案内カード -->
+            <div id="immediate-info-card" class="immediate-banner mt-3" style="display: none;">
+              <span class="banner-icon">⚡</span>
+              <div class="banner-content">
+                <strong>即時送信モードが選択されています</strong>
+                <p>Discordで予約ファイルを読み込むと、直ちに指定チャンネルへ送信されます。（繰り返しは行われません）</p>
+              </div>
             </div>
           </div>
 
-          <!-- Link Buttons Section -->
-          <div class="buttons-section mt-4">
-            <div class="flex-between">
-              <label>リンクボタン (最大5個)</label>
-              <button type="button" id="btn-add-button" class="btn btn-sm btn-ghost">+ ボタン追加</button>
+          <!-- 1-3. 繰り返し設定 -->
+          <div id="recurrence-section" class="section-card mt-4">
+            <div class="card-header-row">
+              <div class="card-title-group">
+                <span class="card-step-num">C</span>
+                <h2>繰り返し</h2>
+              </div>
             </div>
-            <div id="buttons-container" class="buttons-list mt-2"></div>
-          </div>
-        </div>
 
-        <!-- 3. 保存・コード発行 -->
-        <div class="card action-card">
-          <div class="action-buttons">
-            <button type="button" id="btn-copy-code" class="btn btn-primary btn-lg">
-              <span class="btn-icon">📋</span> 予約コードをコピー
+            <div class="recurrence-options-grid">
+              <label class="recurrence-card active">
+                <input type="radio" name="recurrence_type" value="none" checked>
+                <div class="rec-card-inner">
+                  <span class="rec-title">1回のみ</span>
+                  <span class="rec-sub">繰り返しなし</span>
+                </div>
+              </label>
+
+              <label class="recurrence-card">
+                <input type="radio" name="recurrence_type" value="daily">
+                <div class="rec-card-inner">
+                  <span class="rec-title">毎日</span>
+                  <span class="rec-sub">毎日の同時刻</span>
+                </div>
+              </label>
+
+              <label class="recurrence-card">
+                <input type="radio" name="recurrence_type" value="weekdays">
+                <div class="rec-card-inner">
+                  <span class="rec-title">平日</span>
+                  <span class="rec-sub">月〜金曜日</span>
+                </div>
+              </label>
+
+              <label class="recurrence-card">
+                <input type="radio" name="recurrence_type" value="weekly">
+                <div class="rec-card-inner">
+                  <span class="rec-title">毎週</span>
+                  <span class="rec-sub">指定曜日</span>
+                </div>
+              </label>
+
+              <label class="recurrence-card">
+                <input type="radio" name="recurrence_type" value="monthly">
+                <div class="rec-card-inner">
+                  <span class="rec-title">毎月</span>
+                  <span class="rec-sub">指定日</span>
+                </div>
+              </label>
+            </div>
+
+            <!-- 毎週選択時の曜日ピッカー -->
+            <div id="weekly-days-picker" class="weekly-days-box mt-3" style="display: none;">
+              <span class="picker-label">送信する曜日を選択してください:</span>
+              <div class="days-toggle-row">
+                <label class="day-toggle-btn"><input type="checkbox" name="weekday" value="0"><span>月</span></label>
+                <label class="day-toggle-btn"><input type="checkbox" name="weekday" value="1"><span>火</span></label>
+                <label class="day-toggle-btn"><input type="checkbox" name="weekday" value="2"><span>水</span></label>
+                <label class="day-toggle-btn"><input type="checkbox" name="weekday" value="3"><span>木</span></label>
+                <label class="day-toggle-btn"><input type="checkbox" name="weekday" value="4"><span>金</span></label>
+                <label class="day-toggle-btn"><input type="checkbox" name="weekday" value="5"><span>土</span></label>
+                <label class="day-toggle-btn"><input type="checkbox" name="weekday" value="6"><span>日</span></label>
+              </div>
+            </div>
+
+            <!-- スケジュール要約バー -->
+            <div id="schedule-final-summary" class="schedule-summary-bar mt-3">
+              <span class="summary-icon">🗓️</span>
+              <span id="schedule-summary-text" class="summary-text">設定内容を集計中...</span>
+            </div>
+          </div>
+
+          <!-- ナビゲーションフッター -->
+          <div class="step-footer-nav mt-5">
+            <div><!-- Spacer --></div>
+            <button type="button" id="btn-goto-step-2" class="btn btn-primary btn-xl">
+              次へ進む (メッセージ作成)
+              <svg viewBox="0 0 20 20" width="18" height="18" fill="currentColor"><path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
             </button>
-            <div class="sub-actions">
-              <button type="button" id="btn-download-rsv" class="btn btn-secondary">
-                💾 圧縮ファイル保存 (.rsv)
-              </button>
-              <button type="button" id="btn-download-json" class="btn btn-ghost">
-                .json保存
-              </button>
-            </div>
           </div>
-          <p class="action-hint">
-            Discordで <code>/booking_message</code> を実行し、「予約コードを入力」に貼り付けるか、保存ファイルを添付してください。
-          </p>
+
         </div>
       </section>
 
-      <!-- Preview Column -->
-      <section class="preview-col">
-        <div class="preview-sticky">
-          <div class="preview-label">Discord プレビュー</div>
-          <div class="discord-preview-box">
-            <div class="discord-msg">
-              <div class="discord-avatar">
-                <svg viewBox="0 0 24 24" width="24" height="24" fill="#ffffff">
-                  <path d="M19.27 5.33C17.94 4.71 16.5 4.26 15 4a.09.09 0 0 0-.07.03c-.18.33-.39.76-.53 1.09a16.09 16.09 0 0 0-4.8 0c-.14-.34-.35-.76-.54-1.09-.01-.02-.04-.03-.07-.03-1.5.26-2.93.71-4.27 1.33-.01 0-.02.01-.03.02-2.72 4.07-3.47 8.03-3.1 11.95 0 .02.01.04.03.05 1.8 1.32 3.53 2.12 5.24 2.65.03.01.06 0 .07-.02.4-.55.76-1.13 1.07-1.74.02-.04 0-.08-.04-.09-.57-.22-1.11-.48-1.64-.78-.04-.02-.04-.08-.01-.11.11-.08.22-.17.33-.25.02-.02.05-.02.07-.01 3.44 1.57 7.15 1.57 10.55 0 .02-.01.05-.01.07.01.11.09.22.17.33.26.04.03.04.09-.01.11-.52.31-1.07.56-1.64.78-.04.01-.05.06-.04.09.32.61.68 1.19 1.07 1.74.02.02.04.03.07.02 1.72-.53 3.45-1.33 5.25-2.65.02-.01.03-.03.03-.05.44-4.53-.73-8.46-3.1-11.95-.01-.01-.02-.02-.04-.02zM8.52 14.91c-1.03 0-1.89-.95-1.89-2.12s.84-2.12 1.89-2.12c1.06 0 1.9.96 1.89 2.12 0 1.17-.84 2.12-1.89 2.12zm6.97 0c-1.03 0-1.89-.95-1.89-2.12s.84-2.12 1.89-2.12c1.06 0 1.9.96 1.89 2.12 0 1.17-.83 2.12-1.89 2.12z"/>
-                </svg>
+      <!-- =====================================================================
+           STEP 2: メッセージ作成 (Embed / 通常テキスト & プレビュー)
+           ===================================================================== -->
+      <section id="step-pane-2" class="step-pane">
+        <div class="pane-content-split">
+          <!-- Left: Editor -->
+          <div class="editor-subcol">
+            <div class="section-card">
+              <div class="card-header-row">
+                <h2>メッセージ形式</h2>
+                <div class="type-segmented-control">
+                  <button type="button" class="type-segment-btn active" data-type="embed">Embed (埋め込み)</button>
+                  <button type="button" class="type-segment-btn" data-type="plain">通常テキスト</button>
+                </div>
               </div>
-              <div class="discord-body">
-                <div class="discord-meta">
-                  <span class="discord-name">Bot</span>
-                  <span class="discord-badge">BOT</span>
-                  <span id="pv-time" class="discord-time">今日 12:00</span>
-                </div>
-                
-                <!-- Plain Text Preview -->
-                <div id="pv-plain" style="display: none;">
-                  <div id="pv-plain-text" class="pv-text"></div>
-                  <img id="pv-plain-image" class="pv-image" style="display: none;" alt="">
-                </div>
 
-                <!-- Embed Preview -->
-                <div id="pv-embed" class="discord-embed">
-                  <div id="pv-embed-pill" class="embed-pill"></div>
-                  <div class="embed-inner">
-                    <div id="pv-embed-author" class="pv-author" style="display: none;">
-                      <img id="pv-author-icon" class="pv-author-icon" src="" alt="">
-                      <span id="pv-author-name" class="pv-author-name"></span>
-                    </div>
-                    <div id="pv-embed-title" class="pv-title" style="display: none;"></div>
-                    <div id="pv-embed-desc" class="pv-desc">メッセージを入力するとプレビューされます</div>
-                    <div id="pv-embed-fields" class="pv-fields"></div>
-                    <img id="pv-embed-image" class="pv-image" style="display: none;" alt="">
-                    <div id="pv-embed-footer" class="pv-footer" style="display: none;">
-                      <img id="pv-footer-icon" class="pv-footer-icon" src="" alt="">
-                      <span id="pv-footer-text"></span>
+              <!-- Embed Form -->
+              <div id="form-embed">
+                <div class="field">
+                  <label for="embed-title">タイトル</label>
+                  <input type="text" id="embed-title" placeholder="タイトルを入力 (任意)" maxlength="256">
+                </div>
+                <div class="field mt-3">
+                  <label for="embed-desc">説明文 / 本文 (Markdown対応)</label>
+                  <textarea id="embed-desc" rows="6" placeholder="本文を入力してください..." maxlength="4096"></textarea>
+                </div>
+                <div class="row mt-3">
+                  <div class="field">
+                    <label for="embed-color">アクセントカラー</label>
+                    <div class="color-picker-row">
+                      <input type="color" id="embed-color" value="#5865F2">
+                      <span id="embed-color-text" class="color-code">#5865F2</span>
                     </div>
                   </div>
-                  <img id="pv-embed-thumbnail" class="pv-thumbnail" style="display: none;" alt="">
+                  <div class="field">
+                    <label for="embed-image">画像URL (任意)</label>
+                    <input type="url" id="embed-image" placeholder="https://example.com/image.png">
+                  </div>
                 </div>
 
-                <!-- Buttons Preview -->
-                <div id="pv-buttons" class="pv-buttons" style="display: none;"></div>
+                <!-- Accordion: Optional Fields -->
+                <details class="modern-accordion mt-3">
+                  <summary>詳細設定 (作成者 / サムネイル / フッター / 項目)</summary>
+                  <div class="accordion-body">
+                    <div class="field">
+                      <label for="embed-author-name">作成者名</label>
+                      <input type="text" id="embed-author-name" placeholder="Author name" maxlength="256">
+                    </div>
+                    <div class="row mt-2">
+                      <div class="field">
+                        <label for="embed-author-icon">作成者アイコンURL</label>
+                        <input type="url" id="embed-author-icon" placeholder="https://...">
+                      </div>
+                      <div class="field">
+                        <label for="embed-thumbnail">サムネイル画像URL</label>
+                        <input type="url" id="embed-thumbnail" placeholder="https://...">
+                      </div>
+                    </div>
+                    <div class="row mt-2">
+                      <div class="field">
+                        <label for="embed-footer">フッターテキスト</label>
+                        <input type="text" id="embed-footer" placeholder="Footer text" maxlength="2048">
+                      </div>
+                      <div class="field">
+                        <label for="embed-footer-icon">フッターアイコンURL</label>
+                        <input type="url" id="embed-footer-icon" placeholder="https://...">
+                      </div>
+                    </div>
+
+                    <div class="mt-3">
+                      <div class="flex-between">
+                        <label>フィールド (項目)</label>
+                        <button type="button" id="btn-add-field" class="btn btn-sm btn-ghost">+ 項目追加</button>
+                      </div>
+                      <div id="fields-container" class="fields-list mt-2"></div>
+                    </div>
+                  </div>
+                </details>
+              </div>
+
+              <!-- Plain Text Form -->
+              <div id="form-plain" style="display: none;">
+                <div class="field">
+                  <div class="flex-between">
+                    <label for="plain-text">メッセージ本文</label>
+                    <span id="plain-char-count" class="char-count">0 / 2000</span>
+                  </div>
+                  <textarea id="plain-text" rows="8" placeholder="メッセージを入力してください..." maxlength="2000"></textarea>
+                </div>
+                <div class="field mt-3">
+                  <label for="plain-image">画像URL (任意)</label>
+                  <input type="url" id="plain-image" placeholder="https://example.com/image.png">
+                </div>
+              </div>
+
+              <!-- Buttons -->
+              <div class="buttons-section mt-4">
+                <div class="flex-between">
+                  <label>リンクボタン (最大5個)</label>
+                  <button type="button" id="btn-add-button" class="btn btn-sm btn-ghost">+ ボタン追加</button>
+                </div>
+                <div id="buttons-container" class="buttons-list mt-2"></div>
+              </div>
+            </div>
+
+            <div class="step-footer-nav mt-4">
+              <button type="button" id="btn-back-to-step-1" class="btn btn-secondary btn-lg">
+                <svg viewBox="0 0 20 20" width="16" height="16" fill="currentColor"><path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"/></svg>
+                戻る (基本設定)
+              </button>
+              <button type="button" id="btn-goto-step-3" class="btn btn-primary btn-xl">
+                次へ進む (保存・確認)
+                <svg viewBox="0 0 20 20" width="18" height="18" fill="currentColor"><path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Right: Preview -->
+          <div class="preview-subcol">
+            <div class="sticky-preview">
+              <div class="preview-header-bar">
+                <span>Discord プレビュー</span>
+                <span id="preview-target-badge" class="preview-target-badge">#一般</span>
+              </div>
+              <div class="discord-preview-card">
+                <div class="discord-msg-row">
+                  <div class="discord-bot-avatar">
+                    <svg viewBox="0 0 24 24" width="22" height="22" fill="#ffffff">
+                      <path d="M19.27 5.33C17.94 4.71 16.5 4.26 15 4a.09.09 0 0 0-.07.03c-.18.33-.39.76-.53 1.09a16.09 16.09 0 0 0-4.8 0c-.14-.34-.35-.76-.54-1.09-.01-.02-.04-.03-.07-.03-1.5.26-2.93.71-4.27 1.33-.01 0-.02.01-.03.02-2.72 4.07-3.47 8.03-3.1 11.95 0 .02.01.04.03.05 1.8 1.32 3.53 2.12 5.24 2.65.03.01.06 0 .07-.02.4-.55.76-1.13 1.07-1.74.02-.04 0-.08-.04-.09-.57-.22-1.11-.48-1.64-.78-.04-.02-.04-.08-.01-.11.11-.08.22-.17.33-.25.02-.02.05-.02.07-.01 3.44 1.57 7.15 1.57 10.55 0 .02-.01.05-.01.07.01.11.09.22.17.33.26.04.03.04.09-.01.11-.52.31-1.07.56-1.64.78-.04.01-.05.06-.04.09.32.61.68 1.19 1.07 1.74.02.02.04.03.07.02 1.72-.53 3.45-1.33 5.25-2.65.02-.01.03-.03.03-.05.44-4.53-.73-8.46-3.1-11.95-.01-.01-.02-.02-.04-.02zM8.52 14.91c-1.03 0-1.89-.95-1.89-2.12s.84-2.12 1.89-2.12c1.06 0 1.9.96 1.89 2.12 0 1.17-.84 2.12-1.89 2.12zm6.97 0c-1.03 0-1.89-.95-1.89-2.12s.84-2.12 1.89-2.12c1.06 0 1.9.96 1.89 2.12 0 1.17-.83 2.12-1.89 2.12z"/>
+                    </svg>
+                  </div>
+                  <div class="discord-msg-content">
+                    <div class="discord-meta">
+                      <span class="discord-bot-name">Bot</span>
+                      <span class="discord-app-badge">BOT</span>
+                      <span id="pv-time" class="discord-timestamp">今日 12:00</span>
+                    </div>
+
+                    <!-- Plain preview -->
+                    <div id="pv-plain" style="display: none;">
+                      <div id="pv-plain-text" class="pv-text"></div>
+                      <img id="pv-plain-image" class="pv-img" style="display: none;" alt="">
+                    </div>
+
+                    <!-- Embed preview -->
+                    <div id="pv-embed" class="discord-embed-card">
+                      <div id="pv-embed-pill" class="embed-color-pill"></div>
+                      <div class="embed-body">
+                        <div id="pv-embed-author" class="pv-author-row" style="display: none;">
+                          <img id="pv-author-icon" class="pv-avatar-xs" src="" alt="">
+                          <span id="pv-author-name" class="pv-author-text"></span>
+                        </div>
+                        <div id="pv-embed-title" class="pv-title-text" style="display: none;"></div>
+                        <div id="pv-embed-desc" class="pv-desc-text">メッセージを入力するとプレビューされます</div>
+                        <div id="pv-embed-fields" class="pv-fields-grid"></div>
+                        <img id="pv-embed-image" class="pv-img" style="display: none;" alt="">
+                        <div id="pv-embed-footer" class="pv-footer-row" style="display: none;">
+                          <img id="pv-footer-icon" class="pv-avatar-xxs" src="" alt="">
+                          <span id="pv-footer-text"></span>
+                        </div>
+                      </div>
+                      <img id="pv-embed-thumbnail" class="pv-thumb-img" style="display: none;" alt="">
+                    </div>
+
+                    <!-- Buttons preview -->
+                    <div id="pv-buttons" class="pv-buttons-wrap" style="display: none;"></div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </section>
-    </main>
 
-    <!-- Import Modal -->
+      <!-- =====================================================================
+           STEP 3: 保存・完了 (JSONファイル保存 & Discord登録案内)
+           ===================================================================== -->
+      <section id="step-pane-3" class="step-pane">
+        <div class="pane-content-narrow">
+          <div class="section-card final-confirm-card">
+            <div class="final-header">
+              <span class="success-icon-badge">✓</span>
+              <h2>設定が完了しました！</h2>
+              <p>設定内容をまとめた <strong>予約ファイル (.json)</strong> をダウンロードしてください。</p>
+            </div>
+
+            <!-- 概要まとめカード -->
+            <div class="summary-details-box">
+              <div class="summary-row">
+                <span class="summary-label">送信先チャンネル</span>
+                <span id="final-summary-channels" class="summary-val font-semibold">1 チャンネル</span>
+              </div>
+              <div class="summary-row">
+                <span class="summary-label">送信タイミング</span>
+                <span id="final-summary-time" class="summary-val font-semibold">日時</span>
+              </div>
+              <div class="summary-row">
+                <span class="summary-label">繰り返し</span>
+                <span id="final-summary-rec" class="summary-val font-semibold">1回のみ</span>
+              </div>
+              <div class="summary-row">
+                <span class="summary-label">メッセージ形式</span>
+                <span id="final-summary-type" class="summary-val font-semibold">Embed</span>
+              </div>
+            </div>
+
+            <!-- JSONダウンロードボタン (最重要アクション) -->
+            <div class="download-action-area mt-4">
+              <button type="button" id="btn-download-json-final" class="btn btn-primary btn-hero">
+                <svg viewBox="0 0 20 20" width="22" height="22" fill="currentColor">
+                  <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                </svg>
+                予約ファイル (.json) をダウンロード
+              </button>
+            </div>
+
+            <!-- Discord登録案内ステップ -->
+            <div class="discord-guide-card mt-4">
+              <h3>Discordでの登録手順</h3>
+              <ol class="guide-steps-list">
+                <li>
+                  <span class="guide-step-idx">1</span>
+                  <span>Discordで <code>/booking_message</code> コマンドを実行します。</span>
+                </li>
+                <li>
+                  <span class="guide-step-idx">2</span>
+                  <span>コマンドの <code>file:</code> オプションに、ダウンロードした <strong>.json</strong> ファイルを添付して送信します。</span>
+                </li>
+                <li>
+                  <span class="guide-step-idx">3</span>
+                  <span>Botから予約完了メッセージが届き、指定日時に自動送信されます！</span>
+                </li>
+              </ol>
+            </div>
+
+            <div class="step-footer-nav mt-4">
+              <button type="button" id="btn-back-to-step-2" class="btn btn-secondary">
+                <svg viewBox="0 0 20 20" width="16" height="16" fill="currentColor"><path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"/></svg>
+                メッセージを修正する
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div><!-- /step-panes-wrapper -->
+
+    <!-- JSON Import Modal -->
     <div id="modal-import" class="modal-overlay" style="display: none;">
-      <div class="modal">
-        <div class="modal-head">
-          <h3>コード / ファイル読み込み</h3>
-          <button type="button" id="btn-import-close" class="close-btn">&times;</button>
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3>予約ファイル (.json) の読み込み</h3>
+          <button type="button" id="btn-import-close" class="btn-close">&times;</button>
         </div>
         <div class="modal-body">
-          <div class="field">
-            <label for="import-file">予約ファイル (.rsv / .json)</label>
-            <input type="file" id="import-file" accept=".json,.rsv,application/json">
+          <div class="file-drop-area">
+            <input type="file" id="import-file" accept=".json,application/json">
+            <span class="drop-text">.json ファイルを選択してください</span>
           </div>
-          <div class="field mt-3">
-            <label for="import-code">または 予約コード貼り付け</label>
-            <textarea id="import-code" rows="4" placeholder="RSV1_... または JSON"></textarea>
-          </div>
-          <div id="import-error" class="error-msg" style="display: none;"></div>
+          <div id="import-error" class="error-banner mt-2" style="display: none;"></div>
         </div>
-        <div class="modal-foot">
+        <div class="modal-footer">
           <button type="button" id="btn-import-cancel" class="btn btn-ghost">キャンセル</button>
           <button type="button" id="btn-import-submit" class="btn btn-primary">読み込む</button>
         </div>
@@ -286,6 +575,6 @@
     <div id="toast" class="toast" style="display: none;"></div>
   </div>
 
-  <script src="app.js?v=20261016_v4"></script>
+  <script src="app.js?v=20261016_v5"></script>
 </body>
 </html>

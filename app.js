@@ -1,6 +1,6 @@
 /**
- * Discord Message Scheduler - Minimal Web App
- * Compatible with GeminiDBot Booking Cog
+ * Discord Message Scheduler - Modern Web App (STEP 1 Focus)
+ * Linear / Vercel-inspired UI with Multi-channel selection & JSON export
  */
 
 (() => {
@@ -8,17 +8,23 @@
 
   // --- State ---
   const state = {
-    messageType: 'embed',
+    currentStep: 1,
+    channels: [], // [{ id, name, category, type, selected: boolean }]
+    timingMode: 'scheduled', // 'scheduled' | 'immediate'
     date: '',
     time: '',
-    recurrence: { type: 'none', days: [] },
+    recurrence: {
+      type: 'none', // 'none' | 'daily' | 'weekdays' | 'weekly' | 'monthly'
+      days: []      // 0: Mon ... 6: Sun
+    },
+    messageType: 'embed', // 'embed' | 'plain'
     embed: {
       title: '',
       description: '',
       color: '#5865F2',
       image_url: '',
-      author: { name: '', icon_url: '' },
       thumbnail_url: '',
+      author: { name: '', icon_url: '' },
       footer: { text: '', icon_url: '' },
       fields: []
     },
@@ -29,53 +35,84 @@
     buttons: []
   };
 
-  // --- DOM Elements ---
+  // --- Helpers ---
   const $ = (id) => document.getElementById(id);
   const $$ = (sel) => document.querySelectorAll(sel);
+  const pad = (n) => String(n).padStart(2, '0');
 
+  // --- DOM Elements ---
   const el = {
-    themeBtn: $('btn-theme'),
+    themeBtn: $('btn-theme-toggle'),
     themeIcon: $('theme-icon'),
-    channelBadge: $('channel-badge'),
-    channelName: $('channel-name'),
     btnReset: $('btn-reset'),
+    stepTabs: $$('.step-tab'),
+    stepPanes: {
+      1: $('step-pane-1'),
+      2: $('step-pane-2'),
+      3: $('step-pane-3')
+    },
 
+    // Step 1: Channels
+    selectedChannelCount: $('selected-channel-count'),
+    selectedChips: $('selected-channels-chips'),
+    channelSearch: $('channel-search-input'),
+    btnClearSearch: $('btn-clear-search'),
+    btnSelectAll: $('btn-select-all-channels'),
+    btnClearAll: $('btn-clear-all-channels'),
+    channelContainer: $('channel-list-container'),
+    channelEmptyHint: $('channel-empty-hint'),
+    manualInput: $('manual-channel-input'),
+    btnAddManual: $('btn-add-manual-channel'),
+
+    // Step 1: Timing
+    timingRadios: $$('input[name="timing_mode"]'),
+    timingScheduledLabel: $('segment-scheduled-label'),
+    timingImmediateLabel: $('segment-immediate-label'),
+    scheduledSection: $('scheduled-datetime-section'),
+    immediateCard: $('immediate-info-card'),
     inputDate: $('input-date'),
     inputTime: $('input-time'),
-    selectRecurrence: $('select-recurrence'),
-    weeklyGroup: $('weekly-days-group'),
-    weekdayChecks: $$('input[name="weekday"]'),
-    scheduleSummary: $('schedule-summary'),
+    quickChips: $$('.quick-presets-chips button'),
+    relativeTimeBadge: $('relative-time-badge'),
+    relativeTimeText: $('relative-time-text'),
 
-    typeBtns: $$('.type-btn'),
+    // Step 1: Recurrence
+    recurrenceSection: $('recurrence-section'),
+    recurrenceRadios: $$('input[name="recurrence_type"]'),
+    weeklyDaysPicker: $('weekly-days-picker'),
+    weekdayChecks: $$('input[name="weekday"]'),
+    scheduleSummaryText: $('schedule-summary-text'),
+
+    // Step 1 Navigation
+    btnGotoStep2: $('btn-goto-step-2'),
+
+    // Step 2: Editor
+    typeBtns: $$('.type-segment-btn'),
     formEmbed: $('form-embed'),
     formPlain: $('form-plain'),
-
     embedTitle: $('embed-title'),
     embedDesc: $('embed-desc'),
     embedColor: $('embed-color'),
     embedColorText: $('embed-color-text'),
     embedImage: $('embed-image'),
+    embedThumbnail: $('embed-thumbnail'),
     embedAuthorName: $('embed-author-name'),
     embedAuthorIcon: $('embed-author-icon'),
-    embedThumbnail: $('embed-thumbnail'),
     embedFooter: $('embed-footer'),
     embedFooterIcon: $('embed-footer-icon'),
     fieldsContainer: $('fields-container'),
     btnAddField: $('btn-add-field'),
-
     plainText: $('plain-text'),
     plainCharCount: $('plain-char-count'),
     plainImage: $('plain-image'),
-
     buttonsContainer: $('buttons-container'),
     btnAddButton: $('btn-add-button'),
 
-    btnCopyCode: $('btn-copy-code'),
-    btnDownloadRsv: $('btn-download-rsv'),
-    btnDownloadJson: $('btn-download-json'),
+    btnBackToStep1: $('btn-back-to-step-1'),
+    btnGotoStep3: $('btn-goto-step-3'),
 
-    // Preview
+    // Step 2: Preview
+    pvTargetBadge: $('preview-target-badge'),
     pvTime: $('pv-time'),
     pvPlain: $('pv-plain'),
     pvPlainText: $('pv-plain-text'),
@@ -95,14 +132,21 @@
     pvEmbedThumbnail: $('pv-embed-thumbnail'),
     pvButtons: $('pv-buttons'),
 
-    // Modal
+    // Step 3: Final
+    finalSummaryChannels: $('final-summary-channels'),
+    finalSummaryTime: $('final-summary-time'),
+    finalSummaryRec: $('final-summary-rec'),
+    finalSummaryType: $('final-summary-type'),
+    btnDownloadJsonFinal: $('btn-download-json-final'),
+    btnBackToStep2: $('btn-back-to-step-2'),
+
+    // Import Modal
     btnImportOpen: $('btn-import-open'),
     modalImport: $('modal-import'),
     btnImportClose: $('btn-import-close'),
     btnImportCancel: $('btn-import-cancel'),
     btnImportSubmit: $('btn-import-submit'),
     importFile: $('import-file'),
-    importCode: $('import-code'),
     importError: $('import-error'),
 
     toast: $('toast')
@@ -118,119 +162,463 @@
     document.body.classList.toggle('light-theme', isLight);
     if (el.themeIcon) el.themeIcon.textContent = isLight ? '☀️' : '🌙';
     const meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute('content', isLight ? '#f2f3f5' : '#1e1f22');
+    if (meta) meta.setAttribute('content', isLight ? '#f8fafc' : '#0b0e14');
   }
 
   function initTheme() {
     const saved = localStorage.getItem('theme');
-    const isLight = (saved === 'light' || (!saved && getSystemTheme() === 'light'));
+    const isLight = saved === 'light' || (!saved && getSystemTheme() === 'light');
     applyTheme(isLight);
 
     if (el.themeBtn) {
       el.themeBtn.addEventListener('click', () => {
-        const nextLight = !document.body.classList.contains('light-theme');
-        localStorage.setItem('theme', nextLight ? 'light' : 'dark');
-        applyTheme(nextLight);
+        const next = !document.body.classList.contains('light-theme');
+        localStorage.setItem('theme', next ? 'light' : 'dark');
+        applyTheme(next);
       });
     }
 
     if (window.matchMedia) {
       window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', (e) => {
-        if (!localStorage.getItem('theme')) {
-          applyTheme(e.matches);
-        }
+        if (!localStorage.getItem('theme')) applyTheme(e.matches);
       });
     }
   }
 
-  // --- Toast Notification ---
-  let toastTimer = null;
   function showToast(msg) {
     if (!el.toast) return;
     el.toast.textContent = msg;
     el.toast.style.display = 'block';
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => {
-      el.toast.style.display = 'none';
-    }, 2500);
+    clearTimeout(el.toast._timer);
+    el.toast._timer = setTimeout(() => { el.toast.style.display = 'none'; }, 2600);
   }
 
-  // --- Defaults & URL Params ---
-  function initDefaults() {
-    const now = new Date();
-    // デフォルトは直近の次の正時
-    now.setHours(now.getHours() + 1);
-    now.setMinutes(0);
+  // --- Step Navigation & Stepper ---
+  function goToStep(step) {
+    state.currentStep = step;
 
-    const pad = (n) => String(n).padStart(2, '0');
-    el.inputDate.value = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
-    el.inputTime.value = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+    // Tabs update
+    el.stepTabs.forEach((tab) => {
+      const s = parseInt(tab.dataset.step, 10);
+      tab.classList.toggle('active', s === step);
+      tab.classList.toggle('completed', s < step);
+    });
 
-    // クエリパラメータ
-    const params = new URLSearchParams(window.location.search);
-    const cname = params.get('cname');
-    if (cname && el.channelBadge && el.channelName) {
-      el.channelName.textContent = cname;
-      el.channelBadge.style.display = 'inline-block';
+    // Panes update
+    Object.keys(el.stepPanes).forEach((s) => {
+      el.stepPanes[s].classList.toggle('active', parseInt(s, 10) === step);
+    });
+
+    if (step === 2) {
+      renderPreview();
+    } else if (step === 3) {
+      renderFinalSummary();
     }
 
-    const codeFromUrl = params.get('code') || params.get('data');
-    if (codeFromUrl) {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // --- Channels Management (Step 1) ---
+  function parseChannelsFromUrl() {
+    const params = new URLSearchParams(window.location.search);
+    const chsToken = params.get('chs');
+    const defaultCid = params.get('cid');
+    const defaultCname = params.get('cname') || '一般';
+
+    let loadedList = [];
+
+    if (chsToken && typeof window.pako !== 'undefined') {
       try {
-        loadPayload(decodeCode(codeFromUrl));
+        // Base64 URL-safe decode
+        let b64 = chsToken.replace(/-/g, '+').replace(/_/g, '/');
+        while (b64.length % 4) b64 += '=';
+        const binStr = atob(b64);
+        const bytes = new Uint8Array(binStr.length);
+        for (let i = 0; i < binStr.length; i++) bytes[i] = binStr.charCodeAt(i);
+        const jsonStr = window.pako.inflate(bytes, { to: 'string' });
+        const list = JSON.parse(jsonStr);
+        if (Array.isArray(list)) {
+          loadedList = list.map((c) => ({
+            id: String(c.id),
+            name: c.name || 'channel',
+            category: c.category || '',
+            type: c.type || 'text',
+            selected: defaultCid ? String(c.id) === String(defaultCid) : false
+          }));
+        }
       } catch (e) {
-        console.warn('URLコード読み込み失敗:', e);
+        console.warn('chs parameter parse error:', e);
       }
     }
 
-    updateScheduleSummary();
-    renderPreview();
+    // フォールバック（パラメータがない場合やデフォルトチャンネルの保証）
+    if (!loadedList.length && defaultCid) {
+      loadedList.push({
+        id: String(defaultCid),
+        name: defaultCname,
+        category: 'テキストチャンネル',
+        type: 'text',
+        selected: true
+      });
+    }
+
+    if (!loadedList.length) {
+      // 完全にパラメータなしで開いた場合のダミー例
+      loadedList.push({
+        id: 'default',
+        name: '一般',
+        category: 'テキストチャンネル',
+        type: 'text',
+        selected: true
+      });
+    }
+
+    // もしどのチャンネルも選択されていなければ先頭を選択
+    if (!loadedList.some((c) => c.selected)) {
+      loadedList[0].selected = true;
+    }
+
+    state.channels = loadedList;
+    renderChannelsList();
+    renderSelectedChips();
   }
 
-  // --- Recurrence & Schedule Summary ---
-  function updateScheduleSummary() {
-    const dateVal = el.inputDate.value;
-    const timeVal = el.inputTime.value;
-    const recType = el.selectRecurrence.value;
+  function renderChannelsList() {
+    el.channelContainer.innerHTML = '';
+    const query = el.channelSearch.value.trim().toLowerCase();
 
-    if (!dateVal || !timeVal) {
-      el.scheduleSummary.textContent = '日付と時刻を指定してください';
+    // フィルタリング
+    const filtered = state.channels.filter((c) => {
+      if (!query) return true;
+      return c.name.toLowerCase().includes(query) || (c.category && c.category.toLowerCase().includes(query));
+    });
+
+    if (!filtered.length) {
+      el.channelEmptyHint.style.display = 'block';
+      return;
+    }
+    el.channelEmptyHint.style.display = 'none';
+
+    // カテゴリごとにグループ化
+    const groups = {};
+    filtered.forEach((c) => {
+      const cat = c.category || '未分類';
+      if (!groups[cat]) groups[cat] = [];
+      groups[cat].push(c);
+    });
+
+    Object.keys(groups).forEach((cat) => {
+      const grpHeader = document.createElement('div');
+      grpHeader.className = 'channel-group-title';
+      grpHeader.textContent = cat;
+      el.channelContainer.appendChild(grpHeader);
+
+      groups[cat].forEach((c) => {
+        const item = document.createElement('label');
+        item.className = `channel-item-label ${c.selected ? 'selected' : ''}`;
+        item.innerHTML = `
+          <input type="checkbox" value="${c.id}" ${c.selected ? 'checked' : ''}>
+          <span class="channel-item-name"># ${escapeHtml(c.name)}</span>
+          <span class="channel-item-type">${c.type === 'voice' ? '🔊' : '💬'}</span>
+        `;
+
+        const check = item.querySelector('input');
+        check.addEventListener('change', () => {
+          c.selected = check.checked;
+          item.classList.toggle('selected', c.selected);
+          renderSelectedChips();
+        });
+
+        el.channelContainer.appendChild(item);
+      });
+    });
+  }
+
+  function renderSelectedChips() {
+    const selected = state.channels.filter((c) => c.selected);
+    el.selectedChannelCount.textContent = selected.length;
+    el.selectedChips.innerHTML = '';
+
+    if (!selected.length) {
+      el.selectedChips.innerHTML = '<span style="font-size:0.8rem;color:var(--text-tertiary);line-height:28px;">チャンネルが選択されていません</span>';
+      if (el.pvTargetBadge) el.pvTargetBadge.textContent = 'チャンネル未選択';
       return;
     }
 
-    const dateObj = new Date(`${dateVal}T${timeVal}:00`);
-    const weekdays = ['日', '月', '火', '水', '木', '金', '土'];
-    const dateStr = `${dateObj.getFullYear()}/${dateObj.getMonth() + 1}/${dateObj.getDate()}(${weekdays[dateObj.getDay()]}) ${timeVal}`;
+    if (el.pvTargetBadge) {
+      el.pvTargetBadge.textContent = selected.length === 1 ? `# ${selected[0].name}` : `${selected.length} チャンネル`;
+    }
 
-    let recStr = '1回のみ送信';
-    if (recType === 'daily') recStr = '毎日 送信';
-    else if (recType === 'weekdays') recStr = '平日 (月〜金) 送信';
-    else if (recType === 'monthly') recStr = '毎月 送信';
+    selected.forEach((c) => {
+      const chip = document.createElement('div');
+      chip.className = 'channel-chip';
+      chip.innerHTML = `
+        <span># ${escapeHtml(c.name)}</span>
+        <button type="button" class="channel-chip-remove" title="選択解除">&times;</button>
+      `;
+
+      chip.querySelector('button').addEventListener('click', (e) => {
+        e.stopPropagation();
+        c.selected = false;
+        renderChannelsList();
+        renderSelectedChips();
+      });
+
+      el.selectedChips.appendChild(chip);
+    });
+  }
+
+  // --- Timing & Datetime Management (Step 1) ---
+  function initTimingDefaults() {
+    const now = new Date();
+    // 30分後の時刻をデフォルトにセット
+    now.setMinutes(now.getMinutes() + 30);
+    now.setSeconds(0);
+
+    el.inputDate.value = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+    el.inputTime.value = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+
+    updateTimingDisplay();
+  }
+
+  function updateTimingDisplay() {
+    const isScheduled = state.timingMode === 'scheduled';
+    el.scheduledSection.style.display = isScheduled ? 'block' : 'none';
+    el.immediateCard.style.display = isScheduled ? 'none' : 'flex';
+    el.recurrenceSection.style.opacity = isScheduled ? '1' : '0.4';
+    el.recurrenceSection.style.pointerEvents = isScheduled ? 'auto' : 'none';
+
+    if (!isScheduled) {
+      el.scheduleSummaryText.textContent = '⚡ 登録後すぐに送信 (繰り返しなし)';
+      if (el.pvTime) el.pvTime.textContent = '今すぐ送信';
+      return;
+    }
+
+    const dateVal = el.inputDate.value;
+    const timeVal = el.inputTime.value;
+    if (!dateVal || !timeVal) {
+      el.relativeTimeText.textContent = '日付と時刻を入力してください';
+      el.relativeTimeBadge.className = 'relative-time-banner is-past';
+      el.scheduleSummaryText.textContent = '日付と時刻を指定してください';
+      return;
+    }
+
+    const targetDate = new Date(`${dateVal}T${timeVal}:00`);
+    const now = new Date();
+    const diffMs = targetDate.getTime() - now.getTime();
+
+    // 相対時間計算
+    if (diffMs <= -60000) {
+      el.relativeTimeBadge.className = 'relative-time-banner is-past';
+      el.relativeTimeText.textContent = '⚠️ 過去の日時が指定されています。未来の日時を指定してください。';
+    } else if (diffMs < 60000) {
+      el.relativeTimeBadge.className = 'relative-time-banner';
+      el.relativeTimeText.textContent = '⏱️ まもなく送信 (1分未満)';
+    } else {
+      el.relativeTimeBadge.className = 'relative-time-banner';
+      const diffMins = Math.floor(diffMs / 60000);
+      const hours = Math.floor(diffMins / 60);
+      const mins = diffMins % 60;
+      let diffStr = '';
+      if (hours > 24) {
+        const days = Math.floor(hours / 24);
+        diffStr = `あと約 ${days} 日後`;
+      } else if (hours > 0) {
+        diffStr = `あと ${hours}時間 ${mins}分後`;
+      } else {
+        diffStr = `あと ${mins}分後`;
+      }
+      el.relativeTimeText.textContent = `⏱️ 送信予定: ${diffStr}`;
+    }
+
+    // 繰り返し要約
+    const weekdaysJp = ['日', '月', '火', '水', '木', '金', '土'];
+    const dateFormatted = `${targetDate.getFullYear()}/${targetDate.getMonth() + 1}/${targetDate.getDate()}(${weekdaysJp[targetDate.getDay()]}) ${timeVal}`;
+
+    let recStr = '1回のみ';
+    const recType = state.recurrence.type;
+    if (recType === 'daily') recStr = '毎日';
+    else if (recType === 'weekdays') recStr = '平日 (月〜金)';
+    else if (recType === 'monthly') recStr = '毎月 (指定日)';
     else if (recType === 'weekly') {
       const selected = Array.from(el.weekdayChecks)
         .filter((c) => c.checked)
         .map((c) => ['月', '火', '水', '木', '金', '土', '日'][parseInt(c.value, 10)]);
-      recStr = selected.length ? `毎週 (${selected.join(', ')}) 送信` : '毎週 送信';
+      recStr = selected.length ? `毎週 (${selected.join(', ')})` : '毎週';
     }
 
-    el.scheduleSummary.textContent = `📅 初回: ${dateStr} [${recStr}]`;
-    if (el.pvTime) el.pvTime.textContent = `${dateStr} 送信予定`;
+    el.scheduleSummaryText.textContent = `📅 初回: ${dateFormatted} [${recStr}]`;
+    if (el.pvTime) el.pvTime.textContent = `${dateFormatted} 送信予定`;
   }
 
-  // --- Form Events ---
-  function attachEventHandlers() {
-    // 日時
-    el.inputDate.addEventListener('input', () => { updateScheduleSummary(); renderPreview(); });
-    el.inputTime.addEventListener('input', () => { updateScheduleSummary(); renderPreview(); });
-
-    // 繰り返し
-    el.selectRecurrence.addEventListener('change', () => {
-      el.weeklyGroup.style.display = el.selectRecurrence.value === 'weekly' ? 'block' : 'none';
-      updateScheduleSummary();
+  // --- Step 1 Events Setup ---
+  function attachStep1Events() {
+    // チャンネル検索
+    el.channelSearch.addEventListener('input', () => {
+      el.btnClearSearch.style.display = el.channelSearch.value ? 'block' : 'none';
+      renderChannelsList();
     });
-    el.weekdayChecks.forEach((c) => c.addEventListener('change', updateScheduleSummary));
 
-    // メッセージ形式タブ
+    el.btnClearSearch.addEventListener('click', () => {
+      el.channelSearch.value = '';
+      el.btnClearSearch.style.display = 'none';
+      renderChannelsList();
+    });
+
+    el.btnSelectAll.addEventListener('click', () => {
+      state.channels.forEach((c) => { c.selected = true; });
+      renderChannelsList();
+      renderSelectedChips();
+    });
+
+    el.btnClearAll.addEventListener('click', () => {
+      state.channels.forEach((c) => { c.selected = false; });
+      renderChannelsList();
+      renderSelectedChips();
+    });
+
+    el.btnAddManual.addEventListener('click', () => {
+      const val = el.manualInput.value.trim();
+      if (!val) return;
+      if (state.channels.some((c) => c.id === val)) {
+        alert('そのチャンネルは既に追加されています');
+        return;
+      }
+      state.channels.unshift({
+        id: val,
+        name: `チャンネル (${val.slice(-4)})`,
+        category: '手動追加',
+        type: 'text',
+        selected: true
+      });
+      el.manualInput.value = '';
+      renderChannelsList();
+      renderSelectedChips();
+    });
+
+    // タイミングモード切替
+    el.timingRadios.forEach((r) => {
+      r.addEventListener('change', () => {
+        state.timingMode = r.value;
+        el.timingScheduledLabel.classList.toggle('active', r.value === 'scheduled');
+        el.timingImmediateLabel.classList.toggle('active', r.value === 'immediate');
+        updateTimingDisplay();
+      });
+    });
+
+    // 日時変更
+    el.inputDate.addEventListener('input', updateTimingDisplay);
+    el.inputTime.addEventListener('input', updateTimingDisplay);
+
+    // クイックプリセットボタン
+    el.quickChips.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const now = new Date();
+        const mins = btn.dataset.minutes;
+        const target = btn.dataset.target;
+
+        if (mins) {
+          now.setMinutes(now.getMinutes() + parseInt(mins, 10));
+        } else if (target === 'tomorrow-9') {
+          now.setDate(now.getDate() + 1);
+          now.setHours(9, 0, 0, 0);
+        } else if (target === 'tomorrow-18') {
+          now.setDate(now.getDate() + 1);
+          now.setHours(18, 0, 0, 0);
+        }
+
+        el.inputDate.value = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+        el.inputTime.value = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+        updateTimingDisplay();
+      });
+    });
+
+    // 繰り返しラジオ
+    el.recurrenceRadios.forEach((r) => {
+      r.addEventListener('change', () => {
+        state.recurrence.type = r.value;
+        $$('.recurrence-card').forEach((card) => {
+          card.classList.toggle('active', card.querySelector('input').value === r.value);
+        });
+        el.weeklyDaysPicker.style.display = r.value === 'weekly' ? 'block' : 'none';
+        updateTimingDisplay();
+      });
+    });
+
+    // 曜日チェック
+    el.weekdayChecks.forEach((c) => {
+      c.addEventListener('change', () => {
+        updateTimingDisplay();
+      });
+    });
+
+    // STEP 1 -> STEP 2
+    el.btnGotoStep2.addEventListener('click', () => {
+      const selectedChannels = state.channels.filter((c) => c.selected);
+      if (!selectedChannels.length) {
+        alert('送信先チャンネルを少なくとも1つ選択してください。');
+        return;
+      }
+
+      if (state.timingMode === 'scheduled') {
+        const dateVal = el.inputDate.value;
+        const timeVal = el.inputTime.value;
+        if (!dateVal || !timeVal) {
+          alert('送信日時を指定してください。');
+          return;
+        }
+        const targetDate = new Date(`${dateVal}T${timeVal}:00`);
+        const now = new Date();
+        if (targetDate.getTime() - now.getTime() <= -60000) {
+          alert('過去の日時が指定されています。未来の日時を指定してください。');
+          return;
+        }
+      }
+
+      goToStep(2);
+    });
+  }
+
+  // --- Step 2 Events & Preview ---
+  function attachStep2Events() {
+    el.stepTabs.forEach((tab) => {
+      tab.addEventListener('click', () => {
+        const targetStep = parseInt(tab.dataset.step, 10);
+        if (targetStep === 1) {
+          goToStep(1);
+        } else if (targetStep === 2) {
+          if (!state.channels.some((c) => c.selected)) {
+            alert('先に送信先チャンネルを選択してください。');
+            return;
+          }
+          goToStep(2);
+        } else if (targetStep === 3) {
+          goToStep(3);
+        }
+      });
+    });
+
+    el.btnBackToStep1.addEventListener('click', () => goToStep(1));
+    el.btnGotoStep3.addEventListener('click', () => {
+      // メッセージのバリデーション
+      if (state.messageType === 'plain') {
+        if (!el.plainText.value.trim() && !el.plainImage.value.trim()) {
+          alert('メッセージ本文または画像URLを入力してください。');
+          return;
+        }
+      } else {
+        const title = el.embedTitle.value.trim();
+        const desc = el.embedDesc.value.trim();
+        const img = el.embedImage.value.trim();
+        if (!title && !desc && !img && !state.embed.fields.length) {
+          alert('Embedのタイトルまたは本文を入力してください。');
+          return;
+        }
+      }
+      goToStep(3);
+    });
+
+    // Type switch
     el.typeBtns.forEach((btn) => {
       btn.addEventListener('click', () => {
         el.typeBtns.forEach((b) => b.classList.remove('active'));
@@ -242,7 +630,7 @@
       });
     });
 
-    // Embed入力
+    // Embed inputs
     el.embedTitle.addEventListener('input', renderPreview);
     el.embedDesc.addEventListener('input', renderPreview);
     el.embedColor.addEventListener('input', (e) => {
@@ -250,21 +638,20 @@
       renderPreview();
     });
     el.embedImage.addEventListener('input', renderPreview);
+    el.embedThumbnail.addEventListener('input', renderPreview);
     el.embedAuthorName.addEventListener('input', renderPreview);
     el.embedAuthorIcon.addEventListener('input', renderPreview);
-    el.embedThumbnail.addEventListener('input', renderPreview);
     el.embedFooter.addEventListener('input', renderPreview);
     el.embedFooterIcon.addEventListener('input', renderPreview);
 
-    // 通常テキスト入力
+    // Plain inputs
     el.plainText.addEventListener('input', () => {
-      const len = el.plainText.value.length;
-      el.plainCharCount.textContent = `${len} / 2000`;
+      el.plainCharCount.textContent = `${el.plainText.value.length} / 2000`;
       renderPreview();
     });
     el.plainImage.addEventListener('input', renderPreview);
 
-    // フィールド追加
+    // Fields
     el.btnAddField.addEventListener('click', () => {
       if (state.embed.fields.length >= 25) {
         alert('フィールドは最大25個までです');
@@ -275,7 +662,7 @@
       renderPreview();
     });
 
-    // ボタン追加
+    // Buttons
     el.btnAddButton.addEventListener('click', () => {
       if (state.buttons.length >= 5) {
         alert('ボタンは最大5個までです');
@@ -285,31 +672,8 @@
       renderButtonsList();
       renderPreview();
     });
-
-    // コピー & ダウンロード
-    el.btnCopyCode.addEventListener('click', handleCopyCode);
-    el.btnDownloadRsv.addEventListener('click', () => handleDownload(true));
-    el.btnDownloadJson.addEventListener('click', () => handleDownload(false));
-
-    // モーダル
-    el.btnImportOpen.addEventListener('click', () => {
-      el.importError.style.display = 'none';
-      el.importCode.value = '';
-      el.importFile.value = '';
-      el.modalImport.style.display = 'flex';
-    });
-    el.btnImportClose.addEventListener('click', () => { el.modalImport.style.display = 'none'; });
-    el.btnImportCancel.addEventListener('click', () => { el.modalImport.style.display = 'none'; });
-    el.btnImportSubmit.addEventListener('click', handleImport);
-
-    // リセット
-    el.btnReset.addEventListener('click', () => {
-      if (!confirm('入力内容を初期状態にリセットしますか？')) return;
-      location.reload();
-    });
   }
 
-  // --- Dynamic Lists (Fields & Buttons) ---
   function renderFieldsList() {
     el.fieldsContainer.innerHTML = '';
     state.embed.fields.forEach((f, idx) => {
@@ -318,10 +682,10 @@
       item.innerHTML = `
         <input type="text" placeholder="項目名" value="${escapeHtml(f.name)}" style="flex:1;">
         <input type="text" placeholder="値" value="${escapeHtml(f.value)}" style="flex:2;">
-        <label style="font-size:0.75rem;display:flex;align-items:center;gap:2px;cursor:pointer;">
+        <label style="font-size:0.75rem;display:flex;align-items:center;gap:3px;cursor:pointer;">
           <input type="checkbox" ${f.inline ? 'checked' : ''}>横並び
         </label>
-        <button type="button" class="btn btn-sm btn-ghost" style="color:var(--danger);padding:2px 6px;">✕</button>
+        <button type="button" class="btn btn-xs btn-ghost" style="color:var(--danger);padding:3px 6px;">✕</button>
       `;
 
       const [nameInput, valInput] = item.querySelectorAll('input[type="text"]');
@@ -349,7 +713,7 @@
       item.innerHTML = `
         <input type="text" placeholder="ボタン名" value="${escapeHtml(b.label)}" style="flex:1;">
         <input type="url" placeholder="https://..." value="${escapeHtml(b.url)}" style="flex:2;">
-        <button type="button" class="btn btn-sm btn-ghost" style="color:var(--danger);padding:2px 6px;">✕</button>
+        <button type="button" class="btn btn-xs btn-ghost" style="color:var(--danger);padding:3px 6px;">✕</button>
       `;
 
       const [labelInput, urlInput] = item.querySelectorAll('input');
@@ -367,7 +731,6 @@
     });
   }
 
-  // --- Discord Live Preview ---
   function renderPreview() {
     if (state.messageType === 'plain') {
       el.pvPlain.style.display = 'block';
@@ -426,8 +789,8 @@
         const fi = document.createElement('div');
         fi.className = `pv-field-item ${f.inline ? '' : 'full-width'}`;
         fi.innerHTML = `
-          <div class="pv-field-name">${escapeHtml(f.name || '\u200b')}</div>
-          <div class="pv-field-value">${escapeHtml(f.value || '\u200b')}</div>
+          <div style="font-size:0.8rem;font-weight:700;color:var(--text-primary);">${escapeHtml(f.name || '\u200b')}</div>
+          <div style="font-size:0.8rem;color:var(--text-secondary);white-space:pre-wrap;">${escapeHtml(f.value || '\u200b')}</div>
         `;
         el.pvEmbedFields.appendChild(fi);
       });
@@ -474,7 +837,7 @@
       el.pvButtons.style.display = 'flex';
       validBtns.forEach((b) => {
         const btnEl = document.createElement('span');
-        btnEl.className = 'pv-btn';
+        btnEl.className = 'btn btn-xs btn-secondary';
         btnEl.textContent = b.label;
         el.pvButtons.appendChild(btnEl);
       });
@@ -483,299 +846,254 @@
     }
   }
 
-  // --- Payload Generation & Compression ---
-  function buildPayload() {
-    const dateVal = el.inputDate.value;
-    const timeVal = el.inputTime.value;
-    if (!dateVal || !timeVal) {
-      throw new Error('送信日時を入力してください。');
-    }
+  // --- Step 3: Final JSON Build & Download ---
+  function buildFinalPayload() {
+    const selectedChannels = state.channels.filter((c) => c.selected);
+    const channelIds = selectedChannels.map((c) => c.id);
 
-    // JST ISO string
-    const datetimeStr = `${dateVal}T${timeVal}:00+09:00`;
+    const isImmediate = state.timingMode === 'immediate';
+    let datetimeStr = 'now';
+    if (!isImmediate) {
+      const dateVal = el.inputDate.value;
+      const timeVal = el.inputTime.value;
+      datetimeStr = `${dateVal}T${timeVal}:00+09:00`;
+    }
 
     // Recurrence
-    const recType = el.selectRecurrence.value;
-    const recurrence = { type: recType };
-    if (recType === 'weekly') {
-      const selectedDays = Array.from(el.weekdayChecks)
+    const recurrence = { type: isImmediate ? 'none' : state.recurrence.type };
+    if (!isImmediate && state.recurrence.type === 'weekly') {
+      const days = Array.from(el.weekdayChecks)
         .filter((c) => c.checked)
         .map((c) => parseInt(c.value, 10));
-      recurrence.days = selectedDays.length ? selectedDays : [new Date(`${dateVal}T${timeVal}`).getDay() === 0 ? 6 : new Date(`${dateVal}T${timeVal}`).getDay() - 1];
+      recurrence.days = days.length ? days : [new Date().getDay() === 0 ? 6 : new Date().getDay() - 1];
     }
 
-    // Buttons
-    const buttons = state.buttons
-      .filter((b) => b.label.trim() && b.url.trim())
-      .map((b) => ({ label: b.label.trim(), url: b.url.trim() }));
-
     const payload = {
+      channel_ids: channelIds,
       datetime: datetimeStr,
+      immediate: isImmediate,
       type: state.messageType,
       recurrence: recurrence
     };
 
-    if (buttons.length) payload.buttons = buttons;
+    // Buttons
+    const validBtns = state.buttons
+      .filter((b) => b.label.trim() && b.url.trim())
+      .map((b) => ({ label: b.label.trim(), url: b.url.trim() }));
+    if (validBtns.length) payload.buttons = validBtns;
 
     if (state.messageType === 'plain') {
-      const text = el.plainText.value.trim();
-      const img = el.plainImage.value.trim();
-      if (!text && !img) {
-        throw new Error('メッセージ本文または画像URLを入力してください。');
-      }
-      payload.content = { text: text };
-      if (img) payload.content.image_url = img;
+      payload.content = {
+        text: el.plainText.value.trim()
+      };
+      if (el.plainImage.value.trim()) payload.content.image_url = el.plainImage.value.trim();
     } else {
-      const title = el.embedTitle.value.trim();
-      const desc = el.embedDesc.value.trim();
-      const color = el.embedColor.value;
-      const img = el.embedImage.value.trim();
-      const thumb = el.embedThumbnail.value.trim();
+      const content = {
+        title: el.embedTitle.value.trim() || undefined,
+        description: el.embedDesc.value.trim() || undefined,
+        color: el.embedColor.value || '#5865F2'
+      };
+
+      if (el.embedImage.value.trim()) content.image_url = el.embedImage.value.trim();
+      if (el.embedThumbnail.value.trim()) content.thumbnail_url = el.embedThumbnail.value.trim();
+
       const authorName = el.embedAuthorName.value.trim();
-      const authorIcon = el.embedAuthorIcon.value.trim();
+      if (authorName) {
+        content.author = { name: authorName };
+        if (el.embedAuthorIcon.value.trim()) content.author.icon_url = el.embedAuthorIcon.value.trim();
+      }
+
       const footerText = el.embedFooter.value.trim();
-      const footerIcon = el.embedFooterIcon.value.trim();
+      if (footerText) {
+        content.footer = { text: footerText };
+        if (el.embedFooterIcon.value.trim()) content.footer.icon_url = el.embedFooterIcon.value.trim();
+      }
 
       const validFields = state.embed.fields
         .filter((f) => f.name.trim() || f.value.trim())
         .map((f) => ({ name: f.name.trim(), value: f.value.trim(), inline: !!f.inline }));
-
-      if (!title && !desc && !img && !thumb && !validFields.length && !authorName) {
-        throw new Error('タイトルまたは説明文を入力してください。');
-      }
-
-      const content = {
-        title: title || undefined,
-        description: desc || undefined,
-        color: color || '#5865F2'
-      };
-
-      if (img) content.image_url = img;
-      if (thumb) content.thumbnail_url = thumb;
-      if (authorName) {
-        content.author = { name: authorName };
-        if (authorIcon) content.author.icon_url = authorIcon;
-      }
-      if (footerText) {
-        content.footer = { text: footerText };
-        if (footerIcon) content.footer.icon_url = footerIcon;
-      }
       if (validFields.length) content.fields = validFields;
 
-      // undefinedを整理
       payload.content = JSON.parse(JSON.stringify(content));
     }
 
     return payload;
   }
 
-  function encodePayloadToRsv(payload) {
-    const jsonStr = JSON.stringify(payload);
-    if (typeof window.pako === 'undefined') {
-      // pakoが無い場合のフォールバック (生Base64)
-      return 'RSV1_' + btoa(unescape(encodeURIComponent(jsonStr)));
-    }
-    // zlib 最高圧縮 (level: 9)
-    const compressed = window.pako.deflate(jsonStr, { level: 9 });
-    let binary = '';
-    const bytes = new Uint8Array(compressed);
-    const len = bytes.byteLength;
-    for (let i = 0; i < len; i++) {
-      binary += String.fromCharCode(bytes[i]);
-    }
-    return 'RSV1_' + btoa(binary);
-  }
+  function renderFinalSummary() {
+    const selected = state.channels.filter((c) => c.selected);
+    el.finalSummaryChannels.textContent = `${selected.length} チャンネル (${selected.map((c) => '#' + c.name).slice(0, 3).join(', ')}${selected.length > 3 ? '...' : ''})`;
 
-  function getCompressedBinary(payload) {
-    const jsonStr = JSON.stringify(payload);
-    if (typeof window.pako !== 'undefined') {
-      return window.pako.deflate(jsonStr, { level: 9 });
-    }
-    return new TextEncoder().encode(jsonStr);
-  }
-
-  // --- Copy & Download Actions ---
-  async function handleCopyCode() {
-    try {
-      const payload = buildPayload();
-      const code = encodePayloadToRsv(payload);
-
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        await navigator.clipboard.writeText(code);
-      } else {
-        const ta = document.createElement('textarea');
-        ta.value = code;
-        document.body.appendChild(ta);
-        ta.select();
-        document.execCommand('copy');
-        document.body.removeChild(ta);
-      }
-      showToast('📋 予約コードをコピーしました！Discordに貼り付けてください');
-    } catch (e) {
-      alert(e.message || 'エラーが発生しました');
-    }
-  }
-
-  function handleDownload(isRsv) {
-    try {
-      const payload = buildPayload();
-      let blob, filename;
-
-      if (isRsv) {
-        const bin = getCompressedBinary(payload);
-        blob = new Blob([bin], { type: 'application/octet-stream' });
-        filename = `reservation_${Date.now()}.rsv`;
-      } else {
-        const jsonStr = JSON.stringify(payload, null, 2);
-        blob = new Blob([jsonStr], { type: 'application/json' });
-        filename = `reservation_${Date.now()}.json`;
-      }
-
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      showToast(`💾 ${filename} を保存しました`);
-    } catch (e) {
-      alert(e.message || 'エラーが発生しました');
-    }
-  }
-
-  // --- Import Logic ---
-  function decodeCode(rawInput) {
-    let clean = String(rawInput).trim();
-    if (clean.startsWith('RSV1_')) clean = clean.slice(5);
-    else if (clean.startsWith('RSV_')) clean = clean.slice(4);
-
-    // 1. zlib Base64 試行
-    try {
-      const bin = atob(clean);
-      const bytes = new Uint8Array(bin.length);
-      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-      if (typeof window.pako !== 'undefined') {
-        const decompressed = window.pako.inflate(bytes, { to: 'string' });
-        return JSON.parse(decompressed);
-      }
-    } catch (e) {}
-
-    // 2. 平文Base64試行
-    try {
-      const decoded = decodeURIComponent(escape(atob(clean)));
-      return JSON.parse(decoded);
-    } catch (e) {}
-
-    // 3. 生JSON試行
-    return JSON.parse(clean);
-  }
-
-  function loadPayload(data) {
-    if (!data || typeof data !== 'object') throw new Error('データ形式が無効です');
-
-    // 日時
-    if (data.datetime) {
-      const dt = new Date(data.datetime);
-      if (!isNaN(dt.getTime())) {
-        const pad = (n) => String(n).padStart(2, '0');
-        el.inputDate.value = `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}`;
-        el.inputTime.value = `${pad(dt.getHours())}:${pad(dt.getMinutes())}`;
-      }
-    }
-
-    // 繰り返し
-    if (data.recurrence) {
-      el.selectRecurrence.value = data.recurrence.type || 'none';
-      el.weeklyGroup.style.display = data.recurrence.type === 'weekly' ? 'block' : 'none';
-      const days = data.recurrence.days || [];
-      el.weekdayChecks.forEach((c) => {
-        c.checked = days.includes(parseInt(c.value, 10));
-      });
-    }
-
-    // 形式
-    const type = data.type || 'embed';
-    state.messageType = type;
-    el.typeBtns.forEach((b) => b.classList.toggle('active', b.dataset.type === type));
-    el.formEmbed.style.display = type === 'embed' ? 'block' : 'none';
-    el.formPlain.style.display = type === 'plain' ? 'block' : 'none';
-
-    const content = data.content || {};
-
-    if (type === 'plain') {
-      el.plainText.value = content.text || '';
-      el.plainImage.value = content.image_url || '';
-      el.plainCharCount.textContent = `${el.plainText.value.length} / 2000`;
+    if (state.timingMode === 'immediate') {
+      el.finalSummaryTime.textContent = '⚡ 即時送信';
+      el.finalSummaryRec.textContent = '1回のみ';
     } else {
-      el.embedTitle.value = content.title || '';
-      el.embedDesc.value = content.description || '';
-      if (content.color) {
-        let hex = content.color;
-        if (typeof hex === 'number') hex = '#' + hex.toString(16).padStart(6, '0');
-        el.embedColor.value = hex;
-        el.embedColorText.textContent = hex.toUpperCase();
-      }
-      el.embedImage.value = content.image_url || '';
-      el.embedThumbnail.value = content.thumbnail_url || '';
-
-      if (content.author) {
-        el.embedAuthorName.value = content.author.name || '';
-        el.embedAuthorIcon.value = content.author.icon_url || '';
-      }
-      if (content.footer) {
-        el.embedFooter.value = content.footer.text || '';
-        el.embedFooterIcon.value = content.footer.icon_url || '';
-      }
-
-      state.embed.fields = Array.isArray(content.fields) ? content.fields : [];
-      renderFieldsList();
+      el.finalSummaryTime.textContent = `${el.inputDate.value} ${el.inputTime.value} (JST)`;
+      const recLabels = { none: '1回のみ', daily: '毎日', weekdays: '平日 (月〜金)', weekly: '毎週', monthly: '毎月' };
+      el.finalSummaryRec.textContent = recLabels[state.recurrence.type] || '1回のみ';
     }
 
-    // ボタン
-    state.buttons = Array.isArray(data.buttons) ? data.buttons : [];
-    renderButtonsList();
-
-    updateScheduleSummary();
-    renderPreview();
+    el.finalSummaryType.textContent = state.messageType === 'embed' ? 'Embed (埋め込み)' : '通常テキスト';
   }
 
-  async function handleImport() {
-    el.importError.style.display = 'none';
-    const code = el.importCode.value.trim();
-    const file = el.importFile.files[0];
+  function attachStep3Events() {
+    el.btnBackToStep2.addEventListener('click', () => goToStep(2));
 
-    try {
-      if (file) {
-        const buf = await file.arrayBuffer();
-        const bytes = new Uint8Array(buf);
-        let parsed = null;
-        try {
-          if (typeof window.pako !== 'undefined') {
-            const text = window.pako.inflate(bytes, { to: 'string' });
-            parsed = JSON.parse(text);
-          }
-        } catch (e) {}
+    el.btnDownloadJsonFinal.addEventListener('click', () => {
+      try {
+        const payload = buildFinalPayload();
+        const jsonStr = JSON.stringify(payload, null, 2);
+        const blob = new Blob([jsonStr], { type: 'application/json' });
+        const now = new Date();
+        const fname = `reservation_${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}.json`;
 
-        if (!parsed) {
-          const str = new TextDecoder('utf-8').decode(bytes);
-          parsed = decodeCode(str);
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fname;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        showToast(`💾 ${fname} をダウンロードしました！`);
+      } catch (e) {
+        alert(e.message || '保存に失敗しました');
+      }
+    });
+  }
+
+  // --- JSON File Import Modal ---
+  function attachImportEvents() {
+    el.btnImportOpen.addEventListener('click', () => {
+      el.importError.style.display = 'none';
+      el.importFile.value = '';
+      el.modalImport.style.display = 'flex';
+    });
+    el.btnImportClose.addEventListener('click', () => { el.modalImport.style.display = 'none'; });
+    el.btnImportCancel.addEventListener('click', () => { el.modalImport.style.display = 'none'; });
+
+    el.btnImportSubmit.addEventListener('click', async () => {
+      el.importError.style.display = 'none';
+      const file = el.importFile.files[0];
+      if (!file) {
+        el.importError.textContent = 'ファイルを選択してください';
+        el.importError.style.display = 'block';
+        return;
+      }
+
+      try {
+        const text = await file.text();
+        const data = JSON.parse(text);
+
+        // 復元処理
+        // 1. チャンネル
+        if (Array.isArray(data.channel_ids)) {
+          state.channels.forEach((c) => {
+            c.selected = data.channel_ids.includes(c.id);
+          });
+          // 見つからなかったチャンネルを手動追加
+          data.channel_ids.forEach((cid) => {
+            if (!state.channels.some((c) => c.id === String(cid))) {
+              state.channels.push({
+                id: String(cid),
+                name: `チャンネル (${String(cid).slice(-4)})`,
+                category: 'インポート',
+                type: 'text',
+                selected: true
+              });
+            }
+          });
+          renderChannelsList();
+          renderSelectedChips();
         }
 
-        loadPayload(parsed);
-      } else if (code) {
-        loadPayload(decodeCode(code));
-      } else {
-        throw new Error('ファイルまたはコードを入力してください');
-      }
+        // 2. タイミング
+        if (data.immediate || data.datetime === 'now') {
+          state.timingMode = 'immediate';
+          el.timingImmediateLabel.querySelector('input').checked = true;
+          el.timingImmediateLabel.classList.add('active');
+          el.timingScheduledLabel.classList.remove('active');
+        } else if (data.datetime) {
+          state.timingMode = 'scheduled';
+          el.timingScheduledLabel.querySelector('input').checked = true;
+          el.timingScheduledLabel.classList.add('active');
+          el.timingImmediateLabel.classList.remove('active');
 
-      el.modalImport.style.display = 'none';
-      showToast('読み込みが完了しました');
-    } catch (e) {
-      el.importError.textContent = '読み込みに失敗しました: ' + (e.message || '形式が不正です');
-      el.importError.style.display = 'block';
-    }
+          const dt = new Date(data.datetime);
+          if (!isNaN(dt.getTime())) {
+            el.inputDate.value = `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}`;
+            el.inputTime.value = `${pad(dt.getHours())}:${pad(dt.getMinutes())}`;
+          }
+        }
+
+        // 3. 繰り返し
+        if (data.recurrence) {
+          state.recurrence.type = data.recurrence.type || 'none';
+          el.recurrenceRadios.forEach((r) => {
+            r.checked = (r.value === state.recurrence.type);
+            r.closest('.recurrence-card').classList.toggle('active', r.checked);
+          });
+          el.weeklyDaysPicker.style.display = state.recurrence.type === 'weekly' ? 'block' : 'none';
+          const days = data.recurrence.days || [];
+          el.weekdayChecks.forEach((c) => {
+            c.checked = days.includes(parseInt(c.value, 10));
+          });
+        }
+
+        // 4. メッセージ形式
+        const mtype = data.type || 'embed';
+        state.messageType = mtype;
+        el.typeBtns.forEach((b) => b.classList.toggle('active', b.dataset.type === mtype));
+        el.formEmbed.style.display = mtype === 'embed' ? 'block' : 'none';
+        el.formPlain.style.display = mtype === 'plain' ? 'block' : 'none';
+
+        const content = data.content || {};
+        if (mtype === 'plain') {
+          el.plainText.value = content.text || '';
+          el.plainImage.value = content.image_url || '';
+        } else {
+          el.embedTitle.value = content.title || '';
+          el.embedDesc.value = content.description || '';
+          if (content.color) {
+            let hex = content.color;
+            if (typeof hex === 'number') hex = '#' + hex.toString(16).padStart(6, '0');
+            el.embedColor.value = hex;
+            el.embedColorText.textContent = hex.toUpperCase();
+          }
+          el.embedImage.value = content.image_url || '';
+          el.embedThumbnail.value = content.thumbnail_url || '';
+          if (content.author) {
+            el.embedAuthorName.value = content.author.name || '';
+            el.embedAuthorIcon.value = content.author.icon_url || '';
+          }
+          if (content.footer) {
+            el.embedFooter.value = content.footer.text || '';
+            el.embedFooterIcon.value = content.footer.icon_url || '';
+          }
+          state.embed.fields = Array.isArray(content.fields) ? content.fields : [];
+          renderFieldsList();
+        }
+
+        state.buttons = Array.isArray(data.buttons) ? data.buttons : [];
+        renderButtonsList();
+
+        updateTimingDisplay();
+        renderPreview();
+
+        el.modalImport.style.display = 'none';
+        showToast('JSONファイルを読み込みました');
+        goToStep(1);
+      } catch (err) {
+        el.importError.textContent = 'JSONファイルの解析に失敗しました: ' + err.message;
+        el.importError.style.display = 'block';
+      }
+    });
+
+    el.btnReset.addEventListener('click', () => {
+      if (!confirm('入力内容をすべてリセットしますか？')) return;
+      location.reload();
+    });
   }
 
   function escapeHtml(str) {
@@ -788,11 +1106,16 @@
       .replace(/'/g, '&#39;');
   }
 
-  // --- Init ---
+  // --- Initializer ---
   function init() {
     initTheme();
-    initDefaults();
-    attachEventHandlers();
+    parseChannelsFromUrl();
+    initTimingDefaults();
+    attachStep1Events();
+    attachStep2Events();
+    attachStep3Events();
+    attachImportEvents();
+    goToStep(1);
   }
 
   if (document.readyState === 'loading') {
