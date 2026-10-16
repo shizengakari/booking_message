@@ -19,7 +19,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20261017_v7">
+  <link rel="stylesheet" href="style.css?v=20261017_v8">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
 </head>
 <body>
@@ -134,10 +134,18 @@
                 <button type="button" id="btn-clear-search" class="clear-search-btn" style="display: none;">&times;</button>
               </div>
               <div class="toolbar-actions">
+                <button type="button" id="btn-toggle-add-channel" class="btn btn-ghost btn-xs">+ IDで追加</button>
                 <button type="button" id="btn-toggle-all-cats" class="btn btn-ghost btn-xs">すべて開く</button>
                 <button type="button" id="btn-select-all-channels" class="btn btn-ghost btn-xs">すべて選択</button>
                 <button type="button" id="btn-clear-all-channels" class="btn btn-ghost btn-xs">選択解除</button>
               </div>
+            </div>
+
+            <!-- チャンネルID直接追加フォーム (折りたたみ) -->
+            <div id="channel-manual-add-wrap" class="channel-manual-add-row" style="display: none;">
+              <input type="text" id="input-manual-channel-id" placeholder="チャンネルID (17〜20桁の数字) を入力..." maxlength="22">
+              <button type="button" id="btn-submit-add-channel" class="btn btn-primary btn-xs">追加して選択</button>
+              <button type="button" id="btn-cancel-add-channel" class="btn btn-ghost btn-xs">キャンセル</button>
             </div>
 
             <!-- チャンネル一覧スクロールエリア (Discord実順序アコーディオン) -->
@@ -204,7 +212,7 @@
                 </div>
                 <div class="dt-trigger-content">
                   <span class="dt-trigger-label">送信指定日時 (クリックして変更)</span>
-                  <span id="dt-display-text" class="dt-trigger-value">日時を設定中...</span>
+                  <span id="dt-display-text" class="dt-trigger-value">日時を指定 (クリックして設定)</span>
                 </div>
                 <button type="button" class="btn btn-secondary btn-sm dt-trigger-btn">日時を変更</button>
               </div>
@@ -303,7 +311,7 @@
                   <line x1="3" y1="10" x2="21" y2="10"></line>
                 </svg>
               </span>
-              <span id="schedule-summary-text" class="summary-text">設定内容を集計中...</span>
+              <span id="schedule-summary-text" class="summary-text">設定内容を確認中...</span>
             </div>
           </div>
 
@@ -779,6 +787,6 @@
     <div id="toast" class="toast" style="display: none;"></div>
   </div>
 
-  <script src="app.js?v=20261017_v7"></script>
+  <script src="app.js?v=20261017_v8"></script>
 </body>
 </html>

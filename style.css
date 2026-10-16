@@ -2842,3 +2842,32 @@ textarea:focus {
   color: var(--text-primary);
   margin-top: 2px;
 }
+
+/* Manual Channel Add Row */
+.channel-manual-add-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding: 8px 10px;
+  background: var(--bg-card);
+  border: 1px dashed var(--brand);
+  border-radius: var(--radius-sm);
+  animation: fadeIn 0.2s ease;
+}
+
+.channel-manual-add-row input {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 10px;
+  font-size: 0.84rem;
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  color: var(--text-primary);
+}
+
+.channel-manual-add-row input:focus {
+  outline: none;
+  border-color: var(--brand);
+}

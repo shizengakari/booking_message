@@ -6,6 +6,10 @@
 (() => {
   'use strict';
 
+  // --- DOM Helpers ---
+  const $ = (id) => document.getElementById(id);
+  const $$ = (sel) => document.querySelectorAll(sel);
+
   // --- State ---
   const HASH_ICON = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="4" y1="9" x2="20" y2="9"></line><line x1="4" y1="15" x2="20" y2="15"></line><line x1="10" y1="3" x2="8" y2="21"></line><line x1="16" y1="3" x2="14" y2="21"></line></svg>`;
   const VOICE_ICON = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>`;
@@ -61,7 +65,7 @@
       3: $('step-pane-3')
     },
 
-    // Step 1: Channels
+    // Step 1: Channels & Manual Add
     selectedChannelCount: $('selected-channel-count'),
     selectedChips: $('selected-channels-chips'),
     channelSearch: $('channel-search-input'),
@@ -69,6 +73,11 @@
     btnSelectAll: $('btn-select-all-channels'),
     btnClearAll: $('btn-clear-all-channels'),
     btnToggleAllCats: $('btn-toggle-all-cats'),
+    btnToggleAddChannel: $('btn-toggle-add-channel'),
+    channelManualAddWrap: $('channel-manual-add-wrap'),
+    inputManualChannelId: $('input-manual-channel-id'),
+    btnSubmitAddChannel: $('btn-submit-add-channel'),
+    btnCancelAddChannel: $('btn-cancel-add-channel'),
     channelContainer: $('channel-list-container'),
     channelEmptyHint: $('channel-empty-hint'),
 
@@ -521,7 +530,14 @@
 
   function initTimingDefaults() {
     const now = new Date();
-    now.setMinutes(now.getMinutes() + 10); // デフォルト10分後
+    // 10分後を基準とし、次の5分単位にスマート繰り上げ
+    now.setMinutes(now.getMinutes() + 10);
+    const rem = now.getMinutes() % 5;
+    if (rem !== 0) {
+      now.setMinutes(now.getMinutes() + (5 - rem));
+    }
+    now.setSeconds(0);
+    now.setMilliseconds(0);
 
     calState.viewYear = now.getFullYear();
     calState.viewMonth = now.getMonth();
@@ -748,6 +764,67 @@
 
   // --- Step 1 Events Setup ---
   function attachStep1Events() {
+    // チャンネル手動追加フォームの操作
+    if (el.btnToggleAddChannel && el.channelManualAddWrap) {
+      el.btnToggleAddChannel.addEventListener('click', () => {
+        const isHidden = el.channelManualAddWrap.style.display === 'none';
+        el.channelManualAddWrap.style.display = isHidden ? 'flex' : 'none';
+        if (isHidden && el.inputManualChannelId) {
+          el.inputManualChannelId.focus();
+        }
+      });
+    }
+
+    if (el.btnCancelAddChannel && el.channelManualAddWrap) {
+      el.btnCancelAddChannel.addEventListener('click', () => {
+        el.channelManualAddWrap.style.display = 'none';
+        if (el.inputManualChannelId) el.inputManualChannelId.value = '';
+      });
+    }
+
+    function handleAddManualChannel() {
+      if (!el.inputManualChannelId) return;
+      const rawVal = el.inputManualChannelId.value.trim();
+      const cid = rawVal.replace(/[^0-9]/g, '');
+      if (!cid || cid.length < 15 || cid.length > 22) {
+        alert('有効なDiscordチャンネルID (17〜20桁程度の数字) を入力してください。');
+        return;
+      }
+
+      const existing = state.channels.find((c) => c.id === cid);
+      if (existing) {
+        existing.selected = true;
+        showToast('チャンネル #' + existing.name + ' を選択しました');
+      } else {
+        const newCh = {
+          id: cid,
+          name: 'ch-' + cid.slice(-4),
+          category: '手動追加',
+          type: 'text',
+          selected: true
+        };
+        state.channels.unshift(newCh);
+        showToast('チャンネル ID: ' + cid + ' を追加しました');
+      }
+
+      el.inputManualChannelId.value = '';
+      el.channelManualAddWrap.style.display = 'none';
+      renderChannelsList();
+      renderSelectedChips();
+    }
+
+    if (el.btnSubmitAddChannel) {
+      el.btnSubmitAddChannel.addEventListener('click', handleAddManualChannel);
+    }
+    if (el.inputManualChannelId) {
+      el.inputManualChannelId.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          handleAddManualChannel();
+        }
+      });
+    }
+
     // チャンネル検索
     el.channelSearch.addEventListener('input', () => {
       el.btnClearSearch.style.display = el.channelSearch.value ? 'block' : 'none';
@@ -1775,9 +1852,32 @@
     return Boolean(params.get('cid') || params.get('chs') || params.get('gid'));
   }
 
-  // --- Initializer ---
+  function fallbackDefaultChannel() {
+    const params = new URLSearchParams(window.location.search);
+    const defaultCid = params.get('cid') || 'default';
+    const defaultCname = params.get('cname') || '一般';
+    state.channels = [{
+      id: String(defaultCid),
+      name: defaultCname,
+      category: 'テキストチャンネル',
+      type: 'text',
+      selected: true
+    }];
+    try {
+      renderChannelsList();
+      renderSelectedChips();
+    } catch (e) {
+      console.error('fallback render error:', e);
+    }
+  }
+
+  // --- Initializer (Robust & Defensive) ---
   function init() {
-    initTheme();
+    try {
+      initTheme();
+    } catch (e) {
+      console.warn('initTheme error:', e);
+    }
 
     if (!checkHasBotSession()) {
       if (el.appMainContent) el.appMainContent.style.display = 'none';
@@ -1790,13 +1890,32 @@
     if (el.noSessionView) el.noSessionView.style.display = 'none';
     if (el.headerSessionActions) el.headerSessionActions.style.display = 'flex';
 
-    parseChannelsFromUrl();
-    initTimingDefaults();
-    attachStep1Events();
-    attachStep2Events();
-    attachStep3Events();
-    attachImportEvents();
-    goToStep(1);
+    // チャンネル解析 (独立保護)
+    try {
+      parseChannelsFromUrl();
+    } catch (e) {
+      console.error('parseChannelsFromUrl failed, falling back:', e);
+      fallbackDefaultChannel();
+    }
+
+    // 日時初期値 (独立保護)
+    try {
+      initTimingDefaults();
+    } catch (e) {
+      console.error('initTimingDefaults error:', e);
+    }
+
+    // イベントリスナー登録 (独立保護)
+    try { attachStep1Events(); } catch (e) { console.error('attachStep1Events error:', e); }
+    try { attachStep2Events(); } catch (e) { console.error('attachStep2Events error:', e); }
+    try { attachStep3Events(); } catch (e) { console.error('attachStep3Events error:', e); }
+    try { attachImportEvents(); } catch (e) { console.error('attachImportEvents error:', e); }
+
+    try {
+      goToStep(1);
+    } catch (e) {
+      console.error('goToStep error:', e);
+    }
   }
 
   if (document.readyState === 'loading') {
