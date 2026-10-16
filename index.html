@@ -19,7 +19,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20261016_v5">
+  <link rel="stylesheet" href="style.css?v=20261016_v6">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
 </head>
 <body>
@@ -38,7 +38,8 @@
       </div>
       <div class="header-actions">
         <button id="btn-theme-toggle" class="btn-icon" title="テーマ切り替え" aria-label="テーマ切り替え">
-          <span id="theme-icon">🌙</span>
+          <!-- JSでSVGを動的描画 -->
+          <span id="theme-icon-wrap"></span>
         </button>
         <button id="btn-import-open" class="btn btn-secondary btn-sm">
           <svg viewBox="0 0 20 20" width="14" height="14" fill="currentColor"><path d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z"/></svg>
@@ -88,7 +89,7 @@
       <section id="step-pane-1" class="step-pane active">
         <div class="pane-content-narrow">
 
-          <!-- 1-1. 送信先チャンネル選択 -->
+          <!-- 1-1. 送信先チャンネル選択 (リストからのみ選択) -->
           <div class="section-card">
             <div class="card-header-row">
               <div class="card-title-group">
@@ -96,7 +97,7 @@
                 <h2>送信先チャンネル</h2>
               </div>
               <div class="channel-selection-badge">
-                <span id="selected-channel-count" class="badge-highlight">0</span> チャンネル選択中
+                <span id="selected-channel-count" class="badge-highlight">0</span> 選択中
               </div>
             </div>
 
@@ -111,31 +112,21 @@
                 <svg viewBox="0 0 20 20" width="16" height="16" fill="currentColor" class="search-icon">
                   <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/>
                 </svg>
-                <input type="text" id="channel-search-input" placeholder="チャンネルを検索...">
+                <input type="text" id="channel-search-input" placeholder="チャンネルを絞り込み...">
                 <button type="button" id="btn-clear-search" class="clear-search-btn" style="display: none;">&times;</button>
               </div>
               <div class="toolbar-actions">
                 <button type="button" id="btn-select-all-channels" class="btn btn-ghost btn-xs">すべて選択</button>
-                <button type="button" id="btn-clear-all-channels" class="btn btn-ghost btn-xs">クリア</button>
+                <button type="button" id="btn-clear-all-channels" class="btn btn-ghost btn-xs">選択解除</button>
               </div>
             </div>
 
-            <!-- チャンネル一覧スクロールエリア -->
+            <!-- チャンネル一覧スクロールエリア (リスト選択専用) -->
             <div id="channel-list-container" class="channel-list-scroll">
-              <!-- JSでカテゴリ別にグループ化して描画 -->
               <div id="channel-empty-hint" class="empty-hint" style="display: none;">
                 該当するチャンネルが見つかりません
               </div>
             </div>
-
-            <!-- 手動チャンネル追加（Botからパラメータが届かなかった時のフォールバック） -->
-            <details id="manual-channel-details" class="manual-channel-accordion mt-2">
-              <summary>＋ チャンネルIDを直接指定する</summary>
-              <div class="manual-channel-box">
-                <input type="text" id="manual-channel-input" placeholder="チャンネルID (例: 123456789012345678)">
-                <button type="button" id="btn-add-manual-channel" class="btn btn-secondary btn-sm">追加</button>
-              </div>
-            </details>
           </div>
 
           <!-- 1-2. 送信タイミング (即時 / 日時指定) -->
@@ -152,7 +143,12 @@
               <label class="timing-segment-item active" id="segment-scheduled-label">
                 <input type="radio" name="timing_mode" value="scheduled" checked>
                 <div class="segment-body">
-                  <span class="segment-icon">🕒</span>
+                  <span class="segment-icon">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                  </span>
                   <div class="segment-text">
                     <span class="segment-title">日時を指定して予約</span>
                     <span class="segment-sub">指定した日時に自動送信</span>
@@ -163,7 +159,11 @@
               <label class="timing-segment-item" id="segment-immediate-label">
                 <input type="radio" name="timing_mode" value="immediate">
                 <div class="segment-body">
-                  <span class="segment-icon">⚡</span>
+                  <span class="segment-icon">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                    </svg>
+                  </span>
                   <div class="segment-text">
                     <span class="segment-title">即時送信</span>
                     <span class="segment-sub">Bot登録後すぐに送信</span>
@@ -204,14 +204,23 @@
 
               <!-- 相対時間プレビューバッジ -->
               <div id="relative-time-badge" class="relative-time-banner mt-2">
-                <span class="banner-icon">ℹ️</span>
+                <span id="relative-time-icon" class="banner-icon">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                  </svg>
+                </span>
                 <span id="relative-time-text" class="banner-text">読み込み中...</span>
               </div>
             </div>
 
             <!-- 即時送信時の案内カード -->
             <div id="immediate-info-card" class="immediate-banner mt-3" style="display: none;">
-              <span class="banner-icon">⚡</span>
+              <span class="banner-icon">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                </svg>
+              </span>
               <div class="banner-content">
                 <strong>即時送信モードが選択されています</strong>
                 <p>Discordで予約ファイルを読み込むと、直ちに指定チャンネルへ送信されます。（繰り返しは行われません）</p>
@@ -286,7 +295,14 @@
 
             <!-- スケジュール要約バー -->
             <div id="schedule-final-summary" class="schedule-summary-bar mt-3">
-              <span class="summary-icon">🗓️</span>
+              <span class="summary-icon">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                  <line x1="16" y1="2" x2="16" y2="6"></line>
+                  <line x1="8" y1="2" x2="8" y2="6"></line>
+                  <line x1="3" y1="10" x2="21" y2="10"></line>
+                </svg>
+              </span>
               <span id="schedule-summary-text" class="summary-text">設定内容を集計中...</span>
             </div>
           </div>
@@ -484,8 +500,12 @@
         <div class="pane-content-narrow">
           <div class="section-card final-confirm-card">
             <div class="final-header">
-              <span class="success-icon-badge">✓</span>
-              <h2>設定が完了しました！</h2>
+              <span class="success-icon-badge">
+                <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              </span>
+              <h2>設定が完了しました</h2>
               <p>設定内容をまとめた <strong>予約ファイル (.json)</strong> をダウンロードしてください。</p>
             </div>
 
@@ -533,7 +553,7 @@
                 </li>
                 <li>
                   <span class="guide-step-idx">3</span>
-                  <span>Botから予約完了メッセージが届き、指定日時に自動送信されます！</span>
+                  <span>Botから予約完了メッセージが届き、指定日時に自動送信されます。</span>
                 </li>
               </ol>
             </div>
@@ -575,6 +595,6 @@
     <div id="toast" class="toast" style="display: none;"></div>
   </div>
 
-  <script src="app.js?v=20261016_v5"></script>
+  <script src="app.js?v=20261016_v6"></script>
 </body>
 </html>

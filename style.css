@@ -368,16 +368,20 @@ body {
 .channel-chip-remove {
   border: none;
   background: transparent;
-  color: var(--text-secondary);
-  font-size: 0.95rem;
+  color: var(--text-tertiary);
   cursor: pointer;
-  line-height: 1;
-  padding: 0 2px;
+  padding: 2px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 50%;
+  transition: var(--transition);
+  margin-left: 2px;
 }
 
 .channel-chip-remove:hover {
   color: var(--danger);
+  background: rgba(239, 68, 68, 0.12);
 }
 
 /* Channel Toolbar */
@@ -481,49 +485,45 @@ body {
   cursor: pointer;
 }
 
+.channel-item-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+  transition: var(--transition);
+}
+
+.channel-item-label.selected .channel-item-icon {
+  color: var(--brand);
+}
+
 .channel-item-name {
   font-size: 0.88rem;
   color: var(--text-primary);
   font-weight: 500;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.channel-item-type {
-  font-size: 0.75rem;
-  color: var(--text-tertiary);
-  margin-left: auto;
+.channel-chip .chip-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--brand);
+  opacity: 0.85;
+}
+
+.channel-chip .chip-name {
+  font-weight: 500;
 }
 
 .empty-hint {
   padding: 24px;
   text-align: center;
   color: var(--text-tertiary);
-  font-size: 0.85rem;
-}
-
-/* Manual Channel Accordion */
-.manual-channel-accordion {
-  font-size: 0.82rem;
-}
-
-.manual-channel-accordion summary {
-  color: var(--brand);
-  cursor: pointer;
-  user-select: none;
-}
-
-.manual-channel-box {
-  display: flex;
-  gap: 8px;
-  margin-top: 8px;
-}
-
-.manual-channel-box input {
-  flex: 1;
-  padding: 7px 10px;
-  background: var(--bg-input);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm);
-  color: var(--text-primary);
   font-size: 0.85rem;
 }
 

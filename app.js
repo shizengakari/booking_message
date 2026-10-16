@@ -40,6 +40,13 @@
   const $$ = (sel) => document.querySelectorAll(sel);
   const pad = (n) => String(n).padStart(2, '0');
 
+  // --- SVG Icons (No Unicode emojis) ---
+  const SUN_ICON = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>`;
+  const MOON_ICON = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>`;
+  const HASH_ICON = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="9" x2="20" y2="9"></line><line x1="4" y1="15" x2="20" y2="15"></line><line x1="10" y1="3" x2="8" y2="21"></line><line x1="16" y1="3" x2="14" y2="21"></line></svg>`;
+  const VOICE_ICON = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>`;
+  const CLOSE_ICON = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`;
+
   // --- DOM Elements ---
   const el = {
     themeBtn: $('btn-theme-toggle'),
@@ -61,8 +68,6 @@
     btnClearAll: $('btn-clear-all-channels'),
     channelContainer: $('channel-list-container'),
     channelEmptyHint: $('channel-empty-hint'),
-    manualInput: $('manual-channel-input'),
-    btnAddManual: $('btn-add-manual-channel'),
 
     // Step 1: Timing
     timingRadios: $$('input[name="timing_mode"]'),
@@ -160,7 +165,7 @@
   function applyTheme(isLight) {
     document.documentElement.classList.toggle('light-theme', isLight);
     document.body.classList.toggle('light-theme', isLight);
-    if (el.themeIcon) el.themeIcon.textContent = isLight ? '☀️' : '🌙';
+    if (el.themeIcon) el.themeIcon.innerHTML = isLight ? SUN_ICON : MOON_ICON;
     const meta = document.querySelector('meta[name="theme-color"]');
     if (meta) meta.setAttribute('content', isLight ? '#f8fafc' : '#0b0e14');
   }
@@ -318,8 +323,8 @@
         item.className = `channel-item-label ${c.selected ? 'selected' : ''}`;
         item.innerHTML = `
           <input type="checkbox" value="${c.id}" ${c.selected ? 'checked' : ''}>
-          <span class="channel-item-name"># ${escapeHtml(c.name)}</span>
-          <span class="channel-item-type">${c.type === 'voice' ? '🔊' : '💬'}</span>
+          <span class="channel-item-icon">${c.type === 'voice' ? VOICE_ICON : HASH_ICON}</span>
+          <span class="channel-item-name">${escapeHtml(c.name)}</span>
         `;
 
         const check = item.querySelector('input');
@@ -353,8 +358,9 @@
       const chip = document.createElement('div');
       chip.className = 'channel-chip';
       chip.innerHTML = `
-        <span># ${escapeHtml(c.name)}</span>
-        <button type="button" class="channel-chip-remove" title="選択解除">&times;</button>
+        <span class="chip-icon">${c.type === 'voice' ? VOICE_ICON : HASH_ICON}</span>
+        <span class="chip-name">${escapeHtml(c.name)}</span>
+        <button type="button" class="channel-chip-remove" title="選択解除" aria-label="削除">${CLOSE_ICON}</button>
       `;
 
       chip.querySelector('button').addEventListener('click', (e) => {
@@ -389,7 +395,7 @@
     el.recurrenceSection.style.pointerEvents = isScheduled ? 'auto' : 'none';
 
     if (!isScheduled) {
-      el.scheduleSummaryText.textContent = '⚡ 登録後すぐに送信 (繰り返しなし)';
+      el.scheduleSummaryText.textContent = '登録後すぐに送信 (繰り返しなし)';
       if (el.pvTime) el.pvTime.textContent = '今すぐ送信';
       return;
     }
@@ -410,10 +416,10 @@
     // 相対時間計算
     if (diffMs <= -60000) {
       el.relativeTimeBadge.className = 'relative-time-banner is-past';
-      el.relativeTimeText.textContent = '⚠️ 過去の日時が指定されています。未来の日時を指定してください。';
+      el.relativeTimeText.textContent = '過去の日時が指定されています。未来の日時を指定してください。';
     } else if (diffMs < 60000) {
       el.relativeTimeBadge.className = 'relative-time-banner';
-      el.relativeTimeText.textContent = '⏱️ まもなく送信 (1分未満)';
+      el.relativeTimeText.textContent = 'まもなく送信 (1分未満)';
     } else {
       el.relativeTimeBadge.className = 'relative-time-banner';
       const diffMins = Math.floor(diffMs / 60000);
@@ -428,7 +434,7 @@
       } else {
         diffStr = `あと ${mins}分後`;
       }
-      el.relativeTimeText.textContent = `⏱️ 送信予定: ${diffStr}`;
+      el.relativeTimeText.textContent = `送信予定: ${diffStr}`;
     }
 
     // 繰り返し要約
@@ -447,7 +453,7 @@
       recStr = selected.length ? `毎週 (${selected.join(', ')})` : '毎週';
     }
 
-    el.scheduleSummaryText.textContent = `📅 初回: ${dateFormatted} [${recStr}]`;
+    el.scheduleSummaryText.textContent = `初回: ${dateFormatted} [${recStr}]`;
     if (el.pvTime) el.pvTime.textContent = `${dateFormatted} 送信予定`;
   }
 
@@ -473,25 +479,6 @@
 
     el.btnClearAll.addEventListener('click', () => {
       state.channels.forEach((c) => { c.selected = false; });
-      renderChannelsList();
-      renderSelectedChips();
-    });
-
-    el.btnAddManual.addEventListener('click', () => {
-      const val = el.manualInput.value.trim();
-      if (!val) return;
-      if (state.channels.some((c) => c.id === val)) {
-        alert('そのチャンネルは既に追加されています');
-        return;
-      }
-      state.channels.unshift({
-        id: val,
-        name: `チャンネル (${val.slice(-4)})`,
-        category: '手動追加',
-        type: 'text',
-        selected: true
-      });
-      el.manualInput.value = '';
       renderChannelsList();
       renderSelectedChips();
     });
@@ -685,7 +672,7 @@
         <label style="font-size:0.75rem;display:flex;align-items:center;gap:3px;cursor:pointer;">
           <input type="checkbox" ${f.inline ? 'checked' : ''}>横並び
         </label>
-        <button type="button" class="btn btn-xs btn-ghost" style="color:var(--danger);padding:3px 6px;">✕</button>
+        <button type="button" class="btn btn-xs btn-ghost" style="color:var(--danger);padding:3px 6px;" title="削除" aria-label="削除">${CLOSE_ICON}</button>
       `;
 
       const [nameInput, valInput] = item.querySelectorAll('input[type="text"]');
@@ -713,7 +700,7 @@
       item.innerHTML = `
         <input type="text" placeholder="ボタン名" value="${escapeHtml(b.label)}" style="flex:1;">
         <input type="url" placeholder="https://..." value="${escapeHtml(b.url)}" style="flex:2;">
-        <button type="button" class="btn btn-xs btn-ghost" style="color:var(--danger);padding:3px 6px;">✕</button>
+        <button type="button" class="btn btn-xs btn-ghost" style="color:var(--danger);padding:3px 6px;" title="削除" aria-label="削除">${CLOSE_ICON}</button>
       `;
 
       const [labelInput, urlInput] = item.querySelectorAll('input');
@@ -925,7 +912,7 @@
     el.finalSummaryChannels.textContent = `${selected.length} チャンネル (${selected.map((c) => '#' + c.name).slice(0, 3).join(', ')}${selected.length > 3 ? '...' : ''})`;
 
     if (state.timingMode === 'immediate') {
-      el.finalSummaryTime.textContent = '⚡ 即時送信';
+      el.finalSummaryTime.textContent = '即時送信';
       el.finalSummaryRec.textContent = '1回のみ';
     } else {
       el.finalSummaryTime.textContent = `${el.inputDate.value} ${el.inputTime.value} (JST)`;
@@ -956,7 +943,7 @@
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
 
-        showToast(`💾 ${fname} をダウンロードしました！`);
+        showToast(`${fname} をダウンロードしました`);
       } catch (e) {
         alert(e.message || '保存に失敗しました');
       }
