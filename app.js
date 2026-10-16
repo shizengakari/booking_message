@@ -7,6 +7,13 @@
   'use strict';
 
   // --- State ---
+  const HASH_ICON = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="4" y1="9" x2="20" y2="9"></line><line x1="4" y1="15" x2="20" y2="15"></line><line x1="10" y1="3" x2="8" y2="21"></line><line x1="16" y1="3" x2="14" y2="21"></line></svg>`;
+  const VOICE_ICON = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>`;
+  const CHEVRON_DOWN_ICON = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>`;
+  const CLOSE_ICON = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`;
+  const SUN_ICON = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>`;
+  const MOON_ICON = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>`;
+
   const state = {
     currentStep: 1,
     channels: [],
@@ -35,7 +42,9 @@
       fields: []
     },
     images: [],
-    buttons: []
+    buttons: [],
+    collapsedCategories: new Set(),
+    allCategoriesCollapsed: false
   };
 
     const el = {
@@ -59,6 +68,8 @@
     btnClearSearch: $('btn-clear-search'),
     btnSelectAll: $('btn-select-all-channels'),
     btnClearAll: $('btn-clear-all-channels'),
+    btnToggleAllCats: $('btn-toggle-all-cats'),
+    timePresetBtns: $$('.btn-time-preset'),
     channelContainer: $('channel-list-container'),
     channelEmptyHint: $('channel-empty-hint'),
 
@@ -259,8 +270,8 @@
 
     if (chsToken && typeof window.pako !== 'undefined') {
       try {
-        // Base64 URL-safe decode
-        let b64 = chsToken.replace(/-/g, '+').replace(/_/g, '/');
+        // Base64 URL-safe decode (replace - with +, _ with /, pad with =)
+        let b64 = chsToken.trim().replace(/-/g, '+').replace(/_/g, '/');
         while (b64.length % 4) b64 += '=';
         const binStr = atob(b64);
         const bytes = new Uint8Array(binStr.length);
@@ -274,16 +285,15 @@
               return {
                 id: String(c[0]),
                 name: String(c[1] || 'channel'),
-                category: String(c[3] || ''),
+                category: String(c[3] || 'テキストチャンネル'),
                 type: c[2] === 1 ? 'voice' : 'text',
                 selected: defaultCid ? String(c[0]) === String(defaultCid) : false
               };
             }
-            // 従来のオブジェクト形式
             return {
               id: String(c.id),
               name: c.name || 'channel',
-              category: c.category || '',
+              category: c.category || 'テキストチャンネル',
               type: c.type || 'text',
               selected: defaultCid ? String(c.id) === String(defaultCid) : false
             };
@@ -306,7 +316,6 @@
     }
 
     if (!loadedList.length) {
-      // 完全にパラメータなしで開いた場合のダミー例
       loadedList.push({
         id: 'default',
         name: '一般',
@@ -342,21 +351,71 @@
     }
     el.channelEmptyHint.style.display = 'none';
 
-    // カテゴリごとにグループ化
-    const groups = {};
+    // Discordの実際の並び順のままカテゴリを抽出 (出現順を保持)
+    const catOrder = [];
+    const catMap = new Map();
     filtered.forEach((c) => {
-      const cat = c.category || '未分類';
-      if (!groups[cat]) groups[cat] = [];
-      groups[cat].push(c);
+      const catName = c.category || '未分類';
+      if (!catMap.has(catName)) {
+        catOrder.push(catName);
+        catMap.set(catName, []);
+      }
+      catMap.get(catName).push(c);
     });
 
-    Object.keys(groups).forEach((cat) => {
+    catOrder.forEach((catName) => {
+      const channelsInCat = catMap.get(catName);
+      const isCollapsed = query ? false : state.collapsedCategories.has(catName);
+
+      // カテゴリヘッダー
       const grpHeader = document.createElement('div');
-      grpHeader.className = 'channel-group-title';
-      grpHeader.textContent = cat;
+      grpHeader.className = `channel-group-header ${isCollapsed ? 'collapsed' : ''}`;
+      
+      const selectedCount = channelsInCat.filter((c) => c.selected).length;
+      const countBadge = selectedCount > 0 ? `<span class="cat-count-badge">${selectedCount}/${channelsInCat.length}</span>` : '';
+
+      grpHeader.innerHTML = `
+        <div class="cat-title-left">
+          <span class="cat-chevron">${CHEVRON_DOWN_ICON}</span>
+          <span class="cat-name">${escapeHtml(catName)}</span>
+          ${countBadge}
+        </div>
+        <div class="cat-actions" onclick="event.stopPropagation();">
+          <button type="button" class="cat-select-btn" data-cat="${escapeHtml(catName)}" data-action="select">全選択</button>
+          <button type="button" class="cat-select-btn" data-cat="${escapeHtml(catName)}" data-action="clear">解除</button>
+        </div>
+      `;
+
+      // 開閉クリック
+      grpHeader.addEventListener('click', () => {
+        if (state.collapsedCategories.has(catName)) {
+          state.collapsedCategories.delete(catName);
+        } else {
+          state.collapsedCategories.add(catName);
+        }
+        renderChannelsList();
+      });
+
+      // カテゴリ全選択・解除ボタン
+      grpHeader.querySelectorAll('.cat-select-btn').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const action = btn.dataset.action;
+          channelsInCat.forEach((c) => {
+            c.selected = (action === 'select');
+          });
+          renderChannelsList();
+          renderSelectedChips();
+        });
+      });
+
       el.channelContainer.appendChild(grpHeader);
 
-      groups[cat].forEach((c) => {
+      // チャンネルリストコンテナ
+      const itemsContainer = document.createElement('div');
+      itemsContainer.className = `channel-group-items ${isCollapsed ? 'collapsed' : ''}`;
+
+      channelsInCat.forEach((c) => {
         const item = document.createElement('label');
         item.className = `channel-item-label ${c.selected ? 'selected' : ''}`;
         item.innerHTML = `
@@ -370,10 +429,31 @@
           c.selected = check.checked;
           item.classList.toggle('selected', c.selected);
           renderSelectedChips();
+          // カテゴリのバッジ更新のために再描画
+          const currentHeader = itemsContainer.previousElementSibling;
+          if (currentHeader) {
+            const newSelCount = channelsInCat.filter((x) => x.selected).length;
+            const titleLeft = currentHeader.querySelector('.cat-title-left');
+            const existingBadge = titleLeft.querySelector('.cat-count-badge');
+            if (newSelCount > 0) {
+              if (existingBadge) {
+                existingBadge.textContent = `${newSelCount}/${channelsInCat.length}`;
+              } else {
+                const badge = document.createElement('span');
+                badge.className = 'cat-count-badge';
+                badge.textContent = `${newSelCount}/${channelsInCat.length}`;
+                titleLeft.appendChild(badge);
+              }
+            } else if (existingBadge) {
+              existingBadge.remove();
+            }
+          }
         });
 
-        el.channelContainer.appendChild(item);
+        itemsContainer.appendChild(item);
       });
+
+      el.channelContainer.appendChild(itemsContainer);
     });
   }
 
@@ -401,8 +481,7 @@
         <button type="button" class="channel-chip-remove" title="選択解除" aria-label="削除">${CLOSE_ICON}</button>
       `;
 
-      chip.querySelector('button').addEventListener('click', (e) => {
-        e.stopPropagation();
+      chip.querySelector('.channel-chip-remove').addEventListener('click', () => {
         c.selected = false;
         renderChannelsList();
         renderSelectedChips();
@@ -412,12 +491,14 @@
     });
   }
 
-  // --- Timing & Datetime Management (Step 1) ---
+  // --- Step 1 Timing Helpers ---
+  function pad(n) {
+    return String(n).padStart(2, '0');
+  }
+
   function initTimingDefaults() {
     const now = new Date();
-    // 30分後の時刻をデフォルトにセット
-    now.setMinutes(now.getMinutes() + 30);
-    now.setSeconds(0);
+    now.setMinutes(now.getMinutes() + 10); // デフォルト10分後
 
     el.inputDate.value = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
     el.inputTime.value = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
@@ -425,15 +506,48 @@
     updateTimingDisplay();
   }
 
-  function updateTimingDisplay() {
-    const isScheduled = state.timingMode === 'scheduled';
-    el.scheduledSection.style.display = isScheduled ? 'block' : 'none';
-    el.immediateCard.style.display = isScheduled ? 'none' : 'flex';
-    el.recurrenceSection.style.opacity = isScheduled ? '1' : '0.4';
-    el.recurrenceSection.style.pointerEvents = isScheduled ? 'auto' : 'none';
+  function setQuickTimeOffset(minutes) {
+    const now = new Date();
+    now.setMinutes(now.getMinutes() + minutes);
+    el.inputDate.value = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+    el.inputTime.value = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+    updateTimingDisplay();
+    showToast(`${minutes}分後に設定しました`);
+  }
 
-    if (!isScheduled) {
-      el.scheduleSummaryText.textContent = '登録後すぐに送信 (繰り返しなし)';
+  function setQuickTimeFixed(targetType) {
+    const now = new Date();
+    let target = new Date();
+
+    if (targetType === 'tonight-20') {
+      target.setHours(20, 0, 0, 0);
+      if (target <= now) target.setDate(target.getDate() + 1); // 過ぎていれば明日
+    } else if (targetType === 'tonight-21') {
+      target.setHours(21, 0, 0, 0);
+      if (target <= now) target.setDate(target.getDate() + 1);
+    } else if (targetType === 'tomorrow-12') {
+      target.setDate(target.getDate() + 1);
+      target.setHours(12, 0, 0, 0);
+    } else if (targetType === 'tomorrow-20') {
+      target.setDate(target.getDate() + 1);
+      target.setHours(20, 0, 0, 0);
+    }
+
+    el.inputDate.value = `${target.getFullYear()}-${pad(target.getMonth() + 1)}-${pad(target.getDate())}`;
+    el.inputTime.value = `${pad(target.getHours())}:${pad(target.getMinutes())}`;
+    updateTimingDisplay();
+    showToast(`${el.inputDate.value} ${el.inputTime.value} に設定しました`);
+  }
+
+  function updateTimingDisplay() {
+    const isImmediate = state.timingMode === 'immediate';
+
+    el.scheduledSection.style.display = isImmediate ? 'none' : 'block';
+    el.immediateCard.style.display = isImmediate ? 'flex' : 'none';
+    el.recurrenceSection.style.display = isImmediate ? 'none' : 'block';
+
+    if (isImmediate) {
+      el.scheduleSummaryText.textContent = '即時送信: Bot登録後すぐに指定チャンネルへ送信されます';
       if (el.pvTime) el.pvTime.textContent = '今すぐ送信';
       return;
     }
@@ -447,7 +561,6 @@
 
     const targetDate = new Date(`${dateVal}T${timeVal}:00`);
 
-    // 繰り返し要約
     const weekdaysJp = ['日', '月', '火', '水', '木', '金', '土'];
     const dateFormatted = `${targetDate.getFullYear()}/${targetDate.getMonth() + 1}/${targetDate.getDate()}(${weekdaysJp[targetDate.getDay()]}) ${timeVal}`;
 
@@ -493,6 +606,31 @@
       renderSelectedChips();
     });
 
+    if (el.btnToggleAllCats) {
+      el.btnToggleAllCats.addEventListener('click', () => {
+        state.allCategoriesCollapsed = !state.allCategoriesCollapsed;
+        if (state.allCategoriesCollapsed) {
+          state.channels.forEach((c) => state.collapsedCategories.add(c.category || '未分類'));
+          el.btnToggleAllCats.textContent = 'すべて開く';
+        } else {
+          state.collapsedCategories.clear();
+          el.btnToggleAllCats.textContent = 'すべて折りたたむ';
+        }
+        renderChannelsList();
+      });
+    }
+
+    // クイック時間プリセットボタン群
+    el.timePresetBtns.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        if (btn.dataset.offset) {
+          setQuickTimeOffset(parseInt(btn.dataset.offset, 10));
+        } else if (btn.dataset.fixed) {
+          setQuickTimeFixed(btn.dataset.fixed);
+        }
+      });
+    });
+
     // タイミングモード切替
     el.timingRadios.forEach((r) => {
       r.addEventListener('change', () => {
@@ -519,36 +657,15 @@
       });
     });
 
-    // 曜日チェック
     el.weekdayChecks.forEach((c) => {
-      c.addEventListener('change', () => {
-        updateTimingDisplay();
-      });
+      c.addEventListener('change', updateTimingDisplay);
     });
 
-    // STEP 1 -> STEP 2
     el.btnGotoStep2.addEventListener('click', () => {
-      const selectedChannels = state.channels.filter((c) => c.selected);
-      if (!selectedChannels.length) {
-        alert('送信先チャンネルを少なくとも1つ選択してください。');
+      if (!state.channels.some((c) => c.selected)) {
+        alert('送信先チャンネルを1つ以上選択してください。');
         return;
       }
-
-      if (state.timingMode === 'scheduled') {
-        const dateVal = el.inputDate.value;
-        const timeVal = el.inputTime.value;
-        if (!dateVal || !timeVal) {
-          alert('送信日時を指定してください。');
-          return;
-        }
-        const targetDate = new Date(`${dateVal}T${timeVal}:00`);
-        const now = new Date();
-        if (targetDate.getTime() - now.getTime() <= -60000) {
-          alert('過去の日時が指定されています。未来の日時を指定してください。');
-          return;
-        }
-      }
-
       goToStep(2);
     });
   }

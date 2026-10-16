@@ -107,7 +107,7 @@
       <section id="step-pane-1" class="step-pane active">
         <div class="pane-content-narrow">
 
-          <!-- 1-1. 送信先チャンネル選択 (リストからのみ選択) -->
+          <!-- 1-1. 送信先チャンネル選択 (大量チャンネル対応・Discord実順序アコーディオン) -->
           <div class="section-card">
             <div class="card-header-row">
               <div class="card-title-group">
@@ -130,16 +130,17 @@
                 <svg viewBox="0 0 20 20" width="16" height="16" fill="currentColor" class="search-icon">
                   <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/>
                 </svg>
-                <input type="text" id="channel-search-input" placeholder="チャンネルを絞り込み...">
+                <input type="text" id="channel-search-input" placeholder="チャンネルやカテゴリを絞り込み...">
                 <button type="button" id="btn-clear-search" class="clear-search-btn" style="display: none;">&times;</button>
               </div>
               <div class="toolbar-actions">
+                <button type="button" id="btn-toggle-all-cats" class="btn btn-ghost btn-xs">すべて開く</button>
                 <button type="button" id="btn-select-all-channels" class="btn btn-ghost btn-xs">すべて選択</button>
                 <button type="button" id="btn-clear-all-channels" class="btn btn-ghost btn-xs">選択解除</button>
               </div>
             </div>
 
-            <!-- チャンネル一覧スクロールエリア (リスト選択専用) -->
+            <!-- チャンネル一覧スクロールエリア (Discord実順序アコーディオン) -->
             <div id="channel-list-container" class="channel-list-scroll">
               <div id="channel-empty-hint" class="empty-hint" style="display: none;">
                 該当するチャンネルが見つかりません
@@ -147,7 +148,7 @@
             </div>
           </div>
 
-          <!-- 1-2. 送信タイミング (即時 / 日時指定) -->
+          <!-- 1-2. 送信タイミング (即時 / 日時指定 + スマホ簡単クイック選択) -->
           <div class="section-card mt-4">
             <div class="card-header-row">
               <div class="card-title-group">
@@ -206,6 +207,20 @@
                   <div class="input-icon-wrap">
                     <input type="time" id="input-time" required>
                   </div>
+                </div>
+              </div>
+
+              <!-- スマホ・PC簡単クイック時刻設定ボタン群 -->
+              <div class="quick-timing-presets mt-3">
+                <span class="preset-label">クイック設定:</span>
+                <div class="preset-buttons-row">
+                  <button type="button" class="btn-time-preset" data-offset="10">+10分後</button>
+                  <button type="button" class="btn-time-preset" data-offset="30">+30分後</button>
+                  <button type="button" class="btn-time-preset" data-offset="60">+1時間後</button>
+                  <button type="button" class="btn-time-preset" data-fixed="tonight-20">今夜 20:00</button>
+                  <button type="button" class="btn-time-preset" data-fixed="tonight-21">今夜 21:00</button>
+                  <button type="button" class="btn-time-preset" data-fixed="tomorrow-12">明日 12:00</button>
+                  <button type="button" class="btn-time-preset" data-fixed="tomorrow-20">明日 20:00</button>
                 </div>
               </div>
 
