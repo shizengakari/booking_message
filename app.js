@@ -80,9 +80,6 @@
     immediateCard: $('immediate-info-card'),
     inputDate: $('input-date'),
     inputTime: $('input-time'),
-    quickChips: $$('.quick-presets-chips button'),
-    relativeTimeBadge: $('relative-time-badge'),
-    relativeTimeText: $('relative-time-text'),
 
     // Step 1: Recurrence
     recurrenceSection: $('recurrence-section'),
@@ -419,39 +416,11 @@
     const dateVal = el.inputDate.value;
     const timeVal = el.inputTime.value;
     if (!dateVal || !timeVal) {
-      el.relativeTimeText.textContent = '日付と時刻を入力してください';
-      el.relativeTimeBadge.className = 'relative-time-banner is-past';
       el.scheduleSummaryText.textContent = '日付と時刻を指定してください';
       return;
     }
 
     const targetDate = new Date(`${dateVal}T${timeVal}:00`);
-    const now = new Date();
-    const diffMs = targetDate.getTime() - now.getTime();
-
-    // 相対時間計算
-    if (diffMs <= -60000) {
-      el.relativeTimeBadge.className = 'relative-time-banner is-past';
-      el.relativeTimeText.textContent = '過去の日時が指定されています。未来の日時を指定してください。';
-    } else if (diffMs < 60000) {
-      el.relativeTimeBadge.className = 'relative-time-banner';
-      el.relativeTimeText.textContent = 'まもなく送信 (1分未満)';
-    } else {
-      el.relativeTimeBadge.className = 'relative-time-banner';
-      const diffMins = Math.floor(diffMs / 60000);
-      const hours = Math.floor(diffMins / 60);
-      const mins = diffMins % 60;
-      let diffStr = '';
-      if (hours > 24) {
-        const days = Math.floor(hours / 24);
-        diffStr = `あと約 ${days} 日後`;
-      } else if (hours > 0) {
-        diffStr = `あと ${hours}時間 ${mins}分後`;
-      } else {
-        diffStr = `あと ${mins}分後`;
-      }
-      el.relativeTimeText.textContent = `送信予定: ${diffStr}`;
-    }
 
     // 繰り返し要約
     const weekdaysJp = ['日', '月', '火', '水', '木', '金', '土'];
@@ -512,29 +481,6 @@
     // 日時変更
     el.inputDate.addEventListener('input', updateTimingDisplay);
     el.inputTime.addEventListener('input', updateTimingDisplay);
-
-    // クイックプリセットボタン
-    el.quickChips.forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const now = new Date();
-        const mins = btn.dataset.minutes;
-        const target = btn.dataset.target;
-
-        if (mins) {
-          now.setMinutes(now.getMinutes() + parseInt(mins, 10));
-        } else if (target === 'tomorrow-9') {
-          now.setDate(now.getDate() + 1);
-          now.setHours(9, 0, 0, 0);
-        } else if (target === 'tomorrow-18') {
-          now.setDate(now.getDate() + 1);
-          now.setHours(18, 0, 0, 0);
-        }
-
-        el.inputDate.value = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
-        el.inputTime.value = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
-        updateTimingDisplay();
-      });
-    });
 
     // 繰り返しラジオ
     el.recurrenceRadios.forEach((r) => {
