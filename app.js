@@ -69,11 +69,10 @@
     btnSelectAll: $('btn-select-all-channels'),
     btnClearAll: $('btn-clear-all-channels'),
     btnToggleAllCats: $('btn-toggle-all-cats'),
-    timePresetBtns: $$('.btn-time-preset'),
     channelContainer: $('channel-list-container'),
     channelEmptyHint: $('channel-empty-hint'),
 
-    // Step 1: Timing
+    // Step 1: Timing & Big Datetime Modal
     timingRadios: $$('input[name="timing_mode"]'),
     timingScheduledLabel: $('segment-scheduled-label'),
     timingImmediateLabel: $('segment-immediate-label'),
@@ -81,6 +80,19 @@
     immediateCard: $('immediate-info-card'),
     inputDate: $('input-date'),
     inputTime: $('input-time'),
+    btnOpenDatetimeModal: $('btn-open-datetime-modal'),
+    dtDisplayText: $('dt-display-text'),
+    modalDatetime: $('modal-datetime'),
+    btnDatetimeClose: $('btn-datetime-close'),
+    btnDatetimeCancel: $('btn-datetime-cancel'),
+    btnDatetimeConfirm: $('btn-datetime-confirm'),
+    btnCalPrev: $('btn-cal-prev'),
+    btnCalNext: $('btn-cal-next'),
+    calMonthTitle: $('cal-month-title'),
+    calendarDaysGrid: $('calendar-days-grid'),
+    timeModalHour: $('time-modal-hour'),
+    timeModalMinute: $('time-modal-minute'),
+    modalDtPreviewText: $('modal-dt-preview-text'),
 
     // Step 1: Recurrence
     recurrenceSection: $('recurrence-section'),
@@ -491,52 +503,202 @@
     });
   }
 
-  // --- Step 1 Timing Helpers ---
+  // --- Step 1 Timing & Full Datetime Modal Logic ---
   function pad(n) {
     return String(n).padStart(2, '0');
   }
+
+  // カレンダーモーダル用内部状態
+  const calState = {
+    viewYear: 2026,
+    viewMonth: 9, // 0-indexed (9 = 10月)
+    selectedYear: 2026,
+    selectedMonth: 9,
+    selectedDay: 17,
+    selectedHour: 12,
+    selectedMinute: 0
+  };
 
   function initTimingDefaults() {
     const now = new Date();
     now.setMinutes(now.getMinutes() + 10); // デフォルト10分後
 
-    el.inputDate.value = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
-    el.inputTime.value = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+    calState.viewYear = now.getFullYear();
+    calState.viewMonth = now.getMonth();
+    calState.selectedYear = now.getFullYear();
+    calState.selectedMonth = now.getMonth();
+    calState.selectedDay = now.getDate();
+    calState.selectedHour = now.getHours();
+    calState.selectedMinute = now.getMinutes();
 
+    el.inputDate.value = `${calState.selectedYear}-${pad(calState.selectedMonth + 1)}-${pad(calState.selectedDay)}`;
+    el.inputTime.value = `${pad(calState.selectedHour)}:${pad(calState.selectedMinute)}`;
+
+    initTimeSelectOptions();
     updateTimingDisplay();
   }
 
-  function setQuickTimeOffset(minutes) {
-    const now = new Date();
-    now.setMinutes(now.getMinutes() + minutes);
-    el.inputDate.value = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
-    el.inputTime.value = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
-    updateTimingDisplay();
-    showToast(`${minutes}分後に設定しました`);
-  }
-
-  function setQuickTimeFixed(targetType) {
-    const now = new Date();
-    let target = new Date();
-
-    if (targetType === 'tonight-20') {
-      target.setHours(20, 0, 0, 0);
-      if (target <= now) target.setDate(target.getDate() + 1); // 過ぎていれば明日
-    } else if (targetType === 'tonight-21') {
-      target.setHours(21, 0, 0, 0);
-      if (target <= now) target.setDate(target.getDate() + 1);
-    } else if (targetType === 'tomorrow-12') {
-      target.setDate(target.getDate() + 1);
-      target.setHours(12, 0, 0, 0);
-    } else if (targetType === 'tomorrow-20') {
-      target.setDate(target.getDate() + 1);
-      target.setHours(20, 0, 0, 0);
+  function initTimeSelectOptions() {
+    if (!el.timeModalHour || !el.timeModalMinute) return;
+    el.timeModalHour.innerHTML = '';
+    for (let h = 0; h < 24; h++) {
+      const opt = document.createElement('option');
+      opt.value = h;
+      opt.textContent = pad(h);
+      el.timeModalHour.appendChild(opt);
     }
 
-    el.inputDate.value = `${target.getFullYear()}-${pad(target.getMonth() + 1)}-${pad(target.getDate())}`;
-    el.inputTime.value = `${pad(target.getHours())}:${pad(target.getMinutes())}`;
+    el.timeModalMinute.innerHTML = '';
+    for (let m = 0; m < 60; m++) {
+      const opt = document.createElement('option');
+      opt.value = m;
+      opt.textContent = pad(m);
+      el.timeModalMinute.appendChild(opt);
+    }
+
+    el.timeModalHour.value = calState.selectedHour;
+    el.timeModalMinute.value = calState.selectedMinute;
+
+    el.timeModalHour.addEventListener('change', () => {
+      calState.selectedHour = parseInt(el.timeModalHour.value, 10);
+      updateModalPreviewText();
+    });
+
+    el.timeModalMinute.addEventListener('change', () => {
+      calState.selectedMinute = parseInt(el.timeModalMinute.value, 10);
+      updateModalPreviewText();
+    });
+  }
+
+  function renderCalendarGrid() {
+    if (!el.calendarDaysGrid || !el.calMonthTitle) return;
+
+    el.calMonthTitle.textContent = `${calState.viewYear}年 ${calState.viewMonth + 1}月`;
+    el.calendarDaysGrid.innerHTML = '';
+
+    const firstDayIndex = new Date(calState.viewYear, calState.viewMonth, 1).getDay();
+    const daysInMonth = new Date(calState.viewYear, calState.viewMonth + 1, 0).getDate();
+    const daysInPrevMonth = new Date(calState.viewYear, calState.viewMonth, 0).getDate();
+
+    const now = new Date();
+    const todayYear = now.getFullYear();
+    const todayMonth = now.getMonth();
+    const todayDate = now.getDate();
+
+    // 前月の日付セル (埋め草)
+    for (let i = firstDayIndex - 1; i >= 0; i--) {
+      const cell = document.createElement('div');
+      cell.className = 'calendar-day-cell other-month disabled';
+      cell.textContent = daysInPrevMonth - i;
+      el.calendarDaysGrid.appendChild(cell);
+    }
+
+    // 当月の日付セル
+    for (let d = 1; d <= daysInMonth; d++) {
+      const cell = document.createElement('div');
+      cell.className = 'calendar-day-cell';
+      cell.textContent = d;
+
+      const isPast = (
+        calState.viewYear < todayYear ||
+        (calState.viewYear === todayYear && calState.viewMonth < todayMonth) ||
+        (calState.viewYear === todayYear && calState.viewMonth === todayMonth && d < todayDate)
+      );
+
+      const isToday = (
+        calState.viewYear === todayYear &&
+        calState.viewMonth === todayMonth &&
+        d === todayDate
+      );
+
+      const isSelected = (
+        calState.viewYear === calState.selectedYear &&
+        calState.viewMonth === calState.selectedMonth &&
+        d === calState.selectedDay
+      );
+
+      if (isPast) cell.classList.add('disabled');
+      if (isToday) cell.classList.add('today');
+      if (isSelected) cell.classList.add('selected');
+
+      if (!isPast) {
+        cell.addEventListener('click', () => {
+          calState.selectedYear = calState.viewYear;
+          calState.selectedMonth = calState.viewMonth;
+          calState.selectedDay = d;
+          renderCalendarGrid();
+          updateModalPreviewText();
+        });
+      }
+
+      el.calendarDaysGrid.appendChild(cell);
+    }
+
+    // 翌月の日付セル (週の終わりまで埋める)
+    const totalRendered = firstDayIndex + daysInMonth;
+    const remaining = (7 - (totalRendered % 7)) % 7;
+    for (let nextD = 1; nextD <= remaining; nextD++) {
+      const cell = document.createElement('div');
+      cell.className = 'calendar-day-cell other-month disabled';
+      cell.textContent = nextD;
+      el.calendarDaysGrid.appendChild(cell);
+    }
+  }
+
+  function updateModalPreviewText() {
+    const d = new Date(calState.selectedYear, calState.selectedMonth, calState.selectedDay, calState.selectedHour, calState.selectedMinute);
+    const weekdaysJp = ['日', '月', '火', '水', '木', '金', '土'];
+    const text = `${calState.selectedYear}/${pad(calState.selectedMonth + 1)}/${pad(calState.selectedDay)}(${weekdaysJp[d.getDay()]}) ${pad(calState.selectedHour)}:${pad(calState.selectedMinute)}`;
+    if (el.modalDtPreviewText) el.modalDtPreviewText.textContent = text;
+  }
+
+  function openDatetimeModal() {
+    // 現在の入力値を反映
+    if (el.inputDate.value && el.inputTime.value) {
+      const parts = el.inputDate.value.split('-');
+      const timeParts = el.inputTime.value.split(':');
+      if (parts.length === 3) {
+        calState.selectedYear = parseInt(parts[0], 10);
+        calState.selectedMonth = parseInt(parts[1], 10) - 1;
+        calState.selectedDay = parseInt(parts[2], 10);
+        calState.viewYear = calState.selectedYear;
+        calState.viewMonth = calState.selectedMonth;
+      }
+      if (timeParts.length >= 2) {
+        calState.selectedHour = parseInt(timeParts[0], 10);
+        calState.selectedMinute = parseInt(timeParts[1], 10);
+      }
+    }
+
+    if (el.timeModalHour) el.timeModalHour.value = calState.selectedHour;
+    if (el.timeModalMinute) el.timeModalMinute.value = calState.selectedMinute;
+
+    renderCalendarGrid();
+    updateModalPreviewText();
+
+    if (el.modalDatetime) el.modalDatetime.style.display = 'flex';
+  }
+
+  function closeDatetimeModal() {
+    if (el.modalDatetime) el.modalDatetime.style.display = 'none';
+  }
+
+  function confirmDatetimeModal() {
+    const d = new Date(calState.selectedYear, calState.selectedMonth, calState.selectedDay, calState.selectedHour, calState.selectedMinute);
+    const now = new Date();
+    // 過去の場合は警告 (即時モードではないため)
+    if (d < new Date(now.getTime() - 60000)) {
+      if (!confirm('過去の日時が選択されています。未来の日時を指定するか、即時送信を選択してください。このまま設定しますか？')) {
+        return;
+      }
+    }
+
+    el.inputDate.value = `${calState.selectedYear}-${pad(calState.selectedMonth + 1)}-${pad(calState.selectedDay)}`;
+    el.inputTime.value = `${pad(calState.selectedHour)}:${pad(calState.selectedMinute)}`;
+
+    closeDatetimeModal();
     updateTimingDisplay();
-    showToast(`${el.inputDate.value} ${el.inputTime.value} に設定しました`);
+    showToast('送信日時を設定しました');
   }
 
   function updateTimingDisplay() {
@@ -555,14 +717,18 @@
     const dateVal = el.inputDate.value;
     const timeVal = el.inputTime.value;
     if (!dateVal || !timeVal) {
+      if (el.dtDisplayText) el.dtDisplayText.textContent = '日時を設定してください';
       el.scheduleSummaryText.textContent = '日付と時刻を指定してください';
       return;
     }
 
     const targetDate = new Date(`${dateVal}T${timeVal}:00`);
-
     const weekdaysJp = ['日', '月', '火', '水', '木', '金', '土'];
-    const dateFormatted = `${targetDate.getFullYear()}/${targetDate.getMonth() + 1}/${targetDate.getDate()}(${weekdaysJp[targetDate.getDay()]}) ${timeVal}`;
+    const dateFormatted = `${targetDate.getFullYear()}年${targetDate.getMonth() + 1}月${targetDate.getDate()}日(${weekdaysJp[targetDate.getDay()]}) ${timeVal}`;
+
+    if (el.dtDisplayText) {
+      el.dtDisplayText.textContent = dateFormatted;
+    }
 
     let recStr = '1回のみ';
     const recType = state.recurrence.type;
@@ -620,16 +786,60 @@
       });
     }
 
-    // クイック時間プリセットボタン群
-    el.timePresetBtns.forEach((btn) => {
-      btn.addEventListener('click', () => {
-        if (btn.dataset.offset) {
-          setQuickTimeOffset(parseInt(btn.dataset.offset, 10));
-        } else if (btn.dataset.fixed) {
-          setQuickTimeFixed(btn.dataset.fixed);
+    // 日時モーダル起動ボタン & オーバーレイ操作
+    if (el.btnOpenDatetimeModal) {
+      el.btnOpenDatetimeModal.addEventListener('click', openDatetimeModal);
+      el.btnOpenDatetimeModal.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          openDatetimeModal();
         }
       });
-    });
+    }
+    const triggerBtn = document.querySelector('.dt-trigger-btn');
+    if (triggerBtn) {
+      triggerBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openDatetimeModal();
+      });
+    }
+
+    if (el.modalDatetime) {
+      el.modalDatetime.addEventListener('click', (e) => {
+        if (e.target === el.modalDatetime) closeDatetimeModal();
+      });
+    }
+    if (el.btnDatetimeClose) {
+      el.btnDatetimeClose.addEventListener('click', closeDatetimeModal);
+    }
+    if (el.btnDatetimeCancel) {
+      el.btnDatetimeCancel.addEventListener('click', closeDatetimeModal);
+    }
+    if (el.btnDatetimeConfirm) {
+      el.btnDatetimeConfirm.addEventListener('click', confirmDatetimeModal);
+    }
+
+    // カレンダー前月/次月ナビ
+    if (el.btnCalPrev) {
+      el.btnCalPrev.addEventListener('click', () => {
+        calState.viewMonth--;
+        if (calState.viewMonth < 0) {
+          calState.viewMonth = 11;
+          calState.viewYear--;
+        }
+        renderCalendarGrid();
+      });
+    }
+    if (el.btnCalNext) {
+      el.btnCalNext.addEventListener('click', () => {
+        calState.viewMonth++;
+        if (calState.viewMonth > 11) {
+          calState.viewMonth = 0;
+          calState.viewYear++;
+        }
+        renderCalendarGrid();
+      });
+    }
 
     // タイミングモード切替
     el.timingRadios.forEach((r) => {
@@ -640,10 +850,6 @@
         updateTimingDisplay();
       });
     });
-
-    // 日時変更
-    el.inputDate.addEventListener('input', updateTimingDisplay);
-    el.inputTime.addEventListener('input', updateTimingDisplay);
 
     // 繰り返しラジオ
     el.recurrenceRadios.forEach((r) => {
@@ -871,6 +1077,48 @@
     // 初期状態でフィールドが空なら1つ追加しておく (すべての項目をデフォルト表示)
     if (!state.embed.fields.length) {
       state.embed.fields.push({ name: '', value: '', inline: false });
+    }
+
+    // Preview Click to Focus Editor
+    if (el.pvPlainWrap) {
+      el.pvPlainWrap.style.cursor = 'pointer';
+      el.pvPlainWrap.title = 'クリックして本文を編集';
+      el.pvPlainWrap.addEventListener('click', () => {
+        el.plainText.focus();
+        el.plainText.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+    }
+    if (el.pvEmbedTitleWrap) {
+      el.pvEmbedTitleWrap.style.cursor = 'pointer';
+      el.pvEmbedTitleWrap.title = 'クリックしてタイトルを編集';
+      el.pvEmbedTitleWrap.addEventListener('click', () => {
+        el.embedTitle.focus();
+        el.embedTitle.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+    }
+    if (el.pvEmbedDesc) {
+      el.pvEmbedDesc.style.cursor = 'pointer';
+      el.pvEmbedDesc.title = 'クリックして説明文を編集';
+      el.pvEmbedDesc.addEventListener('click', () => {
+        el.embedDesc.focus();
+        el.embedDesc.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+    }
+    if (el.pvEmbedAuthor) {
+      el.pvEmbedAuthor.style.cursor = 'pointer';
+      el.pvEmbedAuthor.title = 'クリックして作成者を編集';
+      el.pvEmbedAuthor.addEventListener('click', () => {
+        el.embedAuthorName.focus();
+        el.embedAuthorName.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+    }
+    if (el.pvEmbedFooter) {
+      el.pvEmbedFooter.style.cursor = 'pointer';
+      el.pvEmbedFooter.title = 'クリックしてフッターを編集';
+      el.pvEmbedFooter.addEventListener('click', () => {
+        el.embedFooterText.focus();
+        el.embedFooterText.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
     }
 
     renderFieldsEditor();
@@ -1327,6 +1575,11 @@
       el.importFile.value = '';
       el.modalImport.style.display = 'flex';
     });
+    if (el.modalImport) {
+      el.modalImport.addEventListener('click', (e) => {
+        if (e.target === el.modalImport) el.modalImport.style.display = 'none';
+      });
+    }
     el.btnImportClose.addEventListener('click', () => { el.modalImport.style.display = 'none'; });
     el.btnImportCancel.addEventListener('click', () => { el.modalImport.style.display = 'none'; });
 
