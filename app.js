@@ -243,13 +243,26 @@
         const jsonStr = window.pako.inflate(bytes, { to: 'string' });
         const list = JSON.parse(jsonStr);
         if (Array.isArray(list)) {
-          loadedList = list.map((c) => ({
-            id: String(c.id),
-            name: c.name || 'channel',
-            category: c.category || '',
-            type: c.type || 'text',
-            selected: defaultCid ? String(c.id) === String(defaultCid) : false
-          }));
+          loadedList = list.map((c) => {
+            if (Array.isArray(c)) {
+              // 超軽量タプル配列: [id, name, type_code (0: text, 1: voice), category]
+              return {
+                id: String(c[0]),
+                name: String(c[1] || 'channel'),
+                category: String(c[3] || ''),
+                type: c[2] === 1 ? 'voice' : 'text',
+                selected: defaultCid ? String(c[0]) === String(defaultCid) : false
+              };
+            }
+            // 従来のオブジェクト形式
+            return {
+              id: String(c.id),
+              name: c.name || 'channel',
+              category: c.category || '',
+              type: c.type || 'text',
+              selected: defaultCid ? String(c.id) === String(defaultCid) : false
+            };
+          });
         }
       } catch (e) {
         console.warn('chs parameter parse error:', e);
