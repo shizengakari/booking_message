@@ -49,6 +49,9 @@
 
   // --- DOM Elements ---
   const el = {
+    appMainContent: $('app-main-content'),
+    noSessionView: $('no-session-view'),
+    headerSessionActions: $('header-session-actions'),
     themeBtn: $('btn-theme-toggle'),
     themeIcon: $('theme-icon'),
     btnReset: $('btn-reset'),
@@ -1106,9 +1109,26 @@
       .replace(/'/g, '&#39;');
   }
 
+  function checkHasBotSession() {
+    const params = new URLSearchParams(window.location.search);
+    return Boolean(params.get('cid') || params.get('chs') || params.get('gid'));
+  }
+
   // --- Initializer ---
   function init() {
     initTheme();
+
+    if (!checkHasBotSession()) {
+      if (el.appMainContent) el.appMainContent.style.display = 'none';
+      if (el.noSessionView) el.noSessionView.style.display = 'flex';
+      if (el.headerSessionActions) el.headerSessionActions.style.display = 'none';
+      return;
+    }
+
+    if (el.appMainContent) el.appMainContent.style.display = 'block';
+    if (el.noSessionView) el.noSessionView.style.display = 'none';
+    if (el.headerSessionActions) el.headerSessionActions.style.display = 'flex';
+
     parseChannelsFromUrl();
     initTimingDefaults();
     attachStep1Events();
