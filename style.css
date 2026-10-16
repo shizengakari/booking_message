@@ -42,6 +42,41 @@
   --shadow-glow: 0 0 24px rgba(88, 101, 242, 0.3);
 }
 
+:root.light-theme,
+body.light-theme {
+  --bg-app: #f2f3f5;
+  --bg-primary: #ffffff;
+  --bg-secondary: #f2f3f5;
+  --bg-tertiary: #ebedef;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f7f8f9;
+  --bg-input: #ebedef;
+  --bg-input-focus: #ffffff;
+
+  --border-subtle: rgba(0, 0, 0, 0.08);
+  --border-focus: #5865f2;
+  --border-hover: rgba(0, 0, 0, 0.16);
+
+  --text-header: #060607;
+  --text-normal: #2e3338;
+  --text-muted: #5c5e66;
+  --text-link: #0067c5;
+
+  --brand-primary: #5865f2;
+  --brand-primary-hover: #4752c4;
+  --brand-primary-glow: rgba(88, 101, 242, 0.22);
+  --brand-green: #23a55a;
+  --brand-green-glow: rgba(35, 165, 90, 0.22);
+  --brand-red: #da373c;
+  --brand-yellow: #b45309;
+  --brand-purple: #9333ea;
+
+  --shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
+  --shadow-glow: 0 0 20px rgba(88, 101, 242, 0.18);
+}
+
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
@@ -2334,3 +2369,166 @@ input, select, textarea {
     font-size: 0.95rem;
   }
 }
+
+/* ==========================================================================
+   Theme Toggle Button & Light Theme Overrides
+   ========================================================================== */
+
+.btn-theme-toggle {
+  font-size: 1.15rem;
+  padding: 5px 8px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  transition: all 0.16s ease;
+}
+
+.btn-theme-toggle .theme-icon {
+  display: inline-block;
+  line-height: 1;
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-theme-toggle:hover .theme-icon {
+  transform: scale(1.18) rotate(15deg);
+}
+
+/* Light Theme Component Overrides */
+body.light-theme .discord-bot-name,
+body.light-theme .embed-author-name,
+body.light-theme .embed-title-link {
+  color: var(--text-header);
+}
+
+body.light-theme .embed-title-link:hover {
+  color: var(--text-link);
+}
+
+body.light-theme .discord-recurrence-tag {
+  background: rgba(88, 101, 242, 0.1);
+  color: #4752c4;
+}
+
+body.light-theme .discord-embed-card {
+  background: #f2f3f5;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+body.light-theme .discord-client-window {
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.06);
+}
+
+body.light-theme .discord-spoiler {
+  background: #e3e5e8;
+}
+
+body.light-theme .discord-spoiler:hover,
+body.light-theme .discord-spoiler.revealed {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+body.light-theme .ios-time-picker {
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+body.light-theme .ios-picker-fade {
+  background: linear-gradient(
+    to bottom,
+    var(--bg-primary) 0%,
+    rgba(255, 255, 255, 0.88) 18%,
+    rgba(255, 255, 255, 0) 38%,
+    rgba(255, 255, 255, 0) 62%,
+    rgba(255, 255, 255, 0.88) 82%,
+    var(--bg-primary) 100%
+  );
+}
+
+body.light-theme .picker-stepper:hover {
+  color: var(--text-header);
+  background: rgba(0, 0, 0, 0.05);
+}
+
+body.light-theme .cal-day-cell.other-month {
+  color: #9aa0a6;
+}
+
+body.light-theme .cal-day-cell.disabled {
+  color: #bdc1c6;
+}
+
+body.light-theme .cal-day-cell:hover:not(.disabled):not(.is-selected) {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+body.light-theme .wizard-step-btn:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+body.light-theme .wizard-step-btn .step-num {
+  background: rgba(0, 0, 0, 0.08);
+  color: var(--text-muted);
+}
+
+body.light-theme .wizard-step-btn.active .step-num {
+  color: #fff;
+  background: var(--brand-primary);
+}
+
+body.light-theme .wizard-step-btn.completed .step-num {
+  background: var(--brand-green);
+  color: #fff;
+}
+
+body.light-theme .btn-secondary:hover {
+  background: rgba(0, 0, 0, 0.05);
+  border-color: rgba(0, 0, 0, 0.2);
+  color: var(--text-header);
+}
+
+body.light-theme .btn-ghost:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--text-header);
+}
+
+body.light-theme .btn-download-json-sub:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+body.light-theme .download-card-compress-hint {
+  color: #4338ca;
+  background: rgba(88, 101, 242, 0.08);
+  border-color: rgba(88, 101, 242, 0.2);
+}
+
+body.light-theme .toast {
+  background: #ffffff;
+  color: var(--text-header);
+  border: 1px solid var(--brand-green);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.12);
+}
+
+body.light-theme .target-channel-box {
+  background: #ffffff;
+}
+
+body.light-theme .preset-time-chip:hover {
+  background: rgba(88, 101, 242, 0.1);
+  color: var(--brand-primary);
+}
+
+body.light-theme .recurrence-chip {
+  background: var(--bg-primary);
+}
+
+body.light-theme .recurrence-chip:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+body.light-theme .modal-card {
+  background: #ffffff;
+}
+

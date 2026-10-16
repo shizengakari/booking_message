@@ -6,10 +6,21 @@
   <title>Discord メッセージ予約</title>
   <meta name="description" content="Discord Bot連携メッセージ予約作成・リアルタイムプレビューWebアプリケーション">
   <meta name="theme-color" content="#5865f2">
+  <script>
+    (function() {
+      try {
+        var saved = localStorage.getItem('theme');
+        var prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
+        if (saved === 'light' || (!saved && prefersLight)) {
+          document.documentElement.classList.add('light-theme');
+        }
+      } catch (e) {}
+    })();
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20261013_v3">
+  <link rel="stylesheet" href="style.css?v=20261016_01">
   <!-- pako.js for fast zlib compression -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
 </head>
@@ -32,6 +43,9 @@
       </div>
 
       <div class="header-actions">
+        <button id="theme-toggle" class="btn btn-ghost btn-sm btn-theme-toggle" title="テーマ切り替え" aria-label="テーマ切り替え">
+          <span class="theme-icon">🌙</span>
+        </button>
         <button id="btn-open-import" class="btn btn-secondary btn-sm" title="既存の予約コードやファイルを読み込み">
           <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
           ファイル/コード読込
@@ -840,6 +854,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=20261013_v3"></script>
+  <script src="app.js?v=20261016_01"></script>
 </body>
 </html>

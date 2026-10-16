@@ -47,6 +47,7 @@
   // --- DOM Elements ---
   const el = {
     // Header
+    themeToggle: document.getElementById('theme-toggle'),
     targetChannelBadge: document.getElementById('target-channel-badge'),
     targetChannelName: document.getElementById('target-channel-name'),
     targetChannelId: document.getElementById('target-channel-id'),
@@ -2131,8 +2132,76 @@
     }
   }
 
+  // --- Theme Management ---
+  function getSystemTheme() {
+    return (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) ? 'light' : 'dark';
+  }
+
+  function getEffectiveTheme() {
+    const saved = localStorage.getItem('theme');
+    if (saved === 'light' || saved === 'dark') {
+      return saved;
+    }
+    return getSystemTheme();
+  }
+
+  function applyTheme(isLight) {
+    document.documentElement.classList.toggle('light-theme', isLight);
+    document.body.classList.toggle('light-theme', isLight);
+    updateThemeIcon(isLight);
+
+    const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+    if (metaThemeColor) {
+      metaThemeColor.setAttribute('content', isLight ? '#f2f3f5' : '#1e1f22');
+    }
+  }
+
+  function initTheme() {
+    const isLight = getEffectiveTheme() === 'light';
+    applyTheme(isLight);
+  }
+
+  function toggleTheme() {
+    const currentIsLight = document.body.classList.contains('light-theme');
+    const nextIsLight = !currentIsLight;
+    localStorage.setItem('theme', nextIsLight ? 'light' : 'dark');
+    applyTheme(nextIsLight);
+  }
+
+  function updateThemeIcon(isLight) {
+    if (!el.themeToggle) return;
+    const iconSpan = el.themeToggle.querySelector('.theme-icon');
+    if (iconSpan) {
+      iconSpan.textContent = isLight ? '☀️' : '🌙';
+    } else {
+      el.themeToggle.textContent = isLight ? '☀️' : '🌙';
+    }
+    const tip = isLight ? 'ダークモードに切り替え' : 'ライトモードに切り替え';
+    el.themeToggle.setAttribute('title', tip);
+    el.themeToggle.setAttribute('aria-label', tip);
+  }
+
+  function setupThemeListeners() {
+    if (el.themeToggle) {
+      el.themeToggle.addEventListener('click', toggleTheme);
+    }
+    if (window.matchMedia) {
+      try {
+        window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', (e) => {
+          if (!localStorage.getItem('theme')) {
+            applyTheme(e.matches);
+          }
+        });
+      } catch (err) {
+        console.warn('matchMedia listener error:', err);
+      }
+    }
+  }
+
   // --- Initialize App ---
   function init() {
+    initTheme();
+    setupThemeListeners();
     initDefaults();
     parseQueryParams();
     renderEmbedFieldsList();
