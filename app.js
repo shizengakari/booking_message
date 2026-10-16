@@ -65,19 +65,15 @@
       3: $('step-pane-3')
     },
 
-    // Step 1: Channels & Manual Add
+    // Step 1: Channels (Discord-driven)
+    currentChannelDisplay: $('current-channel-display'),
+    btnToggleCustomChannel: $('btn-toggle-custom-channel'),
+    customChannelWrap: $('custom-channel-wrap'),
+    inputCustomChannelId: $('input-custom-channel-id'),
+    btnApplyCustomChannel: $('btn-apply-custom-channel'),
+    btnCancelCustomChannel: $('btn-cancel-custom-channel'),
     selectedChannelCount: $('selected-channel-count'),
     selectedChips: $('selected-channels-chips'),
-    channelSearch: $('channel-search-input'),
-    btnClearSearch: $('btn-clear-search'),
-    btnSelectAll: $('btn-select-all-channels'),
-    btnClearAll: $('btn-clear-all-channels'),
-    btnToggleAllCats: $('btn-toggle-all-cats'),
-    btnToggleAddChannel: $('btn-toggle-add-channel'),
-    channelManualAddWrap: $('channel-manual-add-wrap'),
-    inputManualChannelId: $('input-manual-channel-id'),
-    btnSubmitAddChannel: $('btn-submit-add-channel'),
-    btnCancelAddChannel: $('btn-cancel-add-channel'),
     channelContainer: $('channel-list-container'),
     channelEmptyHint: $('channel-empty-hint'),
 
@@ -101,6 +97,11 @@
     calendarDaysGrid: $('calendar-days-grid'),
     timeModalHour: $('time-modal-hour'),
     timeModalMinute: $('time-modal-minute'),
+    btnHourStepUp: $('btn-hour-step-up'),
+    btnHourStepDown: $('btn-hour-step-down'),
+    btnMinuteStepUp: $('btn-minute-step-up'),
+    btnMinuteStepDown: $('btn-minute-step-down'),
+    quickMinBtns: $$('.btn-quick-min'),
     modalDtPreviewText: $('modal-dt-preview-text'),
 
     // Step 1: Recurrence
@@ -352,6 +353,10 @@
     }
 
     state.channels = loadedList;
+    if (el.currentChannelDisplay) {
+      const selected = loadedList.find((c) => c.selected) || loadedList[0];
+      el.currentChannelDisplay.textContent = selected ? '#' + selected.name : '#test';
+    }
     renderChannelsList();
     renderSelectedChips();
   }
@@ -556,33 +561,78 @@
 
   function initTimeSelectOptions() {
     if (!el.timeModalHour || !el.timeModalMinute) return;
-    el.timeModalHour.innerHTML = '';
-    for (let h = 0; h < 24; h++) {
-      const opt = document.createElement('option');
-      opt.value = h;
-      opt.textContent = pad(h);
-      el.timeModalHour.appendChild(opt);
-    }
 
-    el.timeModalMinute.innerHTML = '';
-    for (let m = 0; m < 60; m++) {
-      const opt = document.createElement('option');
-      opt.value = m;
-      opt.textContent = pad(m);
-      el.timeModalMinute.appendChild(opt);
-    }
-
-    el.timeModalHour.value = calState.selectedHour;
-    el.timeModalMinute.value = calState.selectedMinute;
-
-    el.timeModalHour.addEventListener('change', () => {
-      calState.selectedHour = parseInt(el.timeModalHour.value, 10);
+    function syncTimeDisplay() {
+      el.timeModalHour.value = pad(calState.selectedHour);
+      el.timeModalMinute.value = pad(calState.selectedMinute);
       updateModalPreviewText();
+    }
+
+    syncTimeDisplay();
+
+    // 時の増減 (+1 / -1)
+    if (el.btnHourStepUp) {
+      el.btnHourStepUp.addEventListener('click', () => {
+        calState.selectedHour = (calState.selectedHour + 1) % 24;
+        syncTimeDisplay();
+      });
+    }
+    if (el.btnHourStepDown) {
+      el.btnHourStepDown.addEventListener('click', () => {
+        calState.selectedHour = (calState.selectedHour - 1 + 24) % 24;
+        syncTimeDisplay();
+      });
+    }
+
+    // 分の増減 (+5 / -5)
+    if (el.btnMinuteStepUp) {
+      el.btnMinuteStepUp.addEventListener('click', () => {
+        calState.selectedMinute = (Math.floor(calState.selectedMinute / 5) * 5 + 5) % 60;
+        syncTimeDisplay();
+      });
+    }
+    if (el.btnMinuteStepDown) {
+      el.btnMinuteStepDown.addEventListener('click', () => {
+        calState.selectedMinute = (Math.ceil(calState.selectedMinute / 5) * 5 - 5 + 60) % 60;
+        syncTimeDisplay();
+      });
+    }
+
+    // クイック分ボタン (:00, :15, :30, :45)
+    if (el.quickMinBtns) {
+      el.quickMinBtns.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          calState.selectedMinute = parseInt(btn.dataset.min, 10) || 0;
+          syncTimeDisplay();
+        });
+      });
+    }
+
+    // 直接数値入力時のハンドリング
+    el.timeModalHour.addEventListener('input', () => {
+      let val = parseInt(el.timeModalHour.value, 10);
+      if (!isNaN(val)) {
+        if (val < 0) val = 0;
+        if (val > 23) val = 23;
+        calState.selectedHour = val;
+        updateModalPreviewText();
+      }
+    });
+    el.timeModalHour.addEventListener('blur', () => {
+      el.timeModalHour.value = pad(calState.selectedHour);
     });
 
-    el.timeModalMinute.addEventListener('change', () => {
-      calState.selectedMinute = parseInt(el.timeModalMinute.value, 10);
-      updateModalPreviewText();
+    el.timeModalMinute.addEventListener('input', () => {
+      let val = parseInt(el.timeModalMinute.value, 10);
+      if (!isNaN(val)) {
+        if (val < 0) val = 0;
+        if (val > 59) val = 59;
+        calState.selectedMinute = val;
+        updateModalPreviewText();
+      }
+    });
+    el.timeModalMinute.addEventListener('blur', () => {
+      el.timeModalMinute.value = pad(calState.selectedMinute);
     });
   }
 
@@ -686,8 +736,8 @@
       }
     }
 
-    if (el.timeModalHour) el.timeModalHour.value = calState.selectedHour;
-    if (el.timeModalMinute) el.timeModalMinute.value = calState.selectedMinute;
+    if (el.timeModalHour) el.timeModalHour.value = pad(calState.selectedHour);
+    if (el.timeModalMinute) el.timeModalMinute.value = pad(calState.selectedMinute);
 
     renderCalendarGrid();
     updateModalPreviewText();
@@ -764,102 +814,63 @@
 
   // --- Step 1 Events Setup ---
   function attachStep1Events() {
-    // チャンネル手動追加フォームの操作
-    if (el.btnToggleAddChannel && el.channelManualAddWrap) {
-      el.btnToggleAddChannel.addEventListener('click', () => {
-        const isHidden = el.channelManualAddWrap.style.display === 'none';
-        el.channelManualAddWrap.style.display = isHidden ? 'flex' : 'none';
-        if (isHidden && el.inputManualChannelId) {
-          el.inputManualChannelId.focus();
+    // 別チャンネルID指定フォームの開閉 & 適用
+    if (el.btnToggleCustomChannel && el.customChannelWrap) {
+      el.btnToggleCustomChannel.addEventListener('click', () => {
+        const isHidden = el.customChannelWrap.style.display === 'none';
+        el.customChannelWrap.style.display = isHidden ? 'block' : 'none';
+        if (isHidden && el.inputCustomChannelId) {
+          el.inputCustomChannelId.focus();
         }
       });
     }
 
-    if (el.btnCancelAddChannel && el.channelManualAddWrap) {
-      el.btnCancelAddChannel.addEventListener('click', () => {
-        el.channelManualAddWrap.style.display = 'none';
-        if (el.inputManualChannelId) el.inputManualChannelId.value = '';
+    if (el.btnCancelCustomChannel && el.customChannelWrap) {
+      el.btnCancelCustomChannel.addEventListener('click', () => {
+        el.customChannelWrap.style.display = 'none';
+        if (el.inputCustomChannelId) el.inputCustomChannelId.value = '';
       });
     }
 
-    function handleAddManualChannel() {
-      if (!el.inputManualChannelId) return;
-      const rawVal = el.inputManualChannelId.value.trim();
+    function handleApplyCustomChannel() {
+      if (!el.inputCustomChannelId) return;
+      const rawVal = el.inputCustomChannelId.value.trim();
       const cid = rawVal.replace(/[^0-9]/g, '');
       if (!cid || cid.length < 15 || cid.length > 22) {
         alert('有効なDiscordチャンネルID (17〜20桁程度の数字) を入力してください。');
         return;
       }
 
-      const existing = state.channels.find((c) => c.id === cid);
-      if (existing) {
-        existing.selected = true;
-        showToast('チャンネル #' + existing.name + ' を選択しました');
-      } else {
-        const newCh = {
-          id: cid,
-          name: 'ch-' + cid.slice(-4),
-          category: '手動追加',
-          type: 'text',
-          selected: true
-        };
-        state.channels.unshift(newCh);
-        showToast('チャンネル ID: ' + cid + ' を追加しました');
+      state.channels = [{
+        id: cid,
+        name: 'ch-' + cid.slice(-4),
+        category: '指定チャンネル',
+        type: 'text',
+        selected: true
+      }];
+
+      if (el.currentChannelDisplay) {
+        el.currentChannelDisplay.textContent = '#ch-' + cid.slice(-4);
+      }
+      if (el.pvTargetBadge) {
+        el.pvTargetBadge.textContent = '#ch-' + cid.slice(-4);
       }
 
-      el.inputManualChannelId.value = '';
-      el.channelManualAddWrap.style.display = 'none';
-      renderChannelsList();
+      el.inputCustomChannelId.value = '';
+      el.customChannelWrap.style.display = 'none';
       renderSelectedChips();
+      showToast('送信先チャンネル ID: ' + cid + ' を設定しました');
     }
 
-    if (el.btnSubmitAddChannel) {
-      el.btnSubmitAddChannel.addEventListener('click', handleAddManualChannel);
+    if (el.btnApplyCustomChannel) {
+      el.btnApplyCustomChannel.addEventListener('click', handleApplyCustomChannel);
     }
-    if (el.inputManualChannelId) {
-      el.inputManualChannelId.addEventListener('keydown', (e) => {
+    if (el.inputCustomChannelId) {
+      el.inputCustomChannelId.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
           e.preventDefault();
-          handleAddManualChannel();
+          handleApplyCustomChannel();
         }
-      });
-    }
-
-    // チャンネル検索
-    el.channelSearch.addEventListener('input', () => {
-      el.btnClearSearch.style.display = el.channelSearch.value ? 'block' : 'none';
-      renderChannelsList();
-    });
-
-    el.btnClearSearch.addEventListener('click', () => {
-      el.channelSearch.value = '';
-      el.btnClearSearch.style.display = 'none';
-      renderChannelsList();
-    });
-
-    el.btnSelectAll.addEventListener('click', () => {
-      state.channels.forEach((c) => { c.selected = true; });
-      renderChannelsList();
-      renderSelectedChips();
-    });
-
-    el.btnClearAll.addEventListener('click', () => {
-      state.channels.forEach((c) => { c.selected = false; });
-      renderChannelsList();
-      renderSelectedChips();
-    });
-
-    if (el.btnToggleAllCats) {
-      el.btnToggleAllCats.addEventListener('click', () => {
-        state.allCategoriesCollapsed = !state.allCategoriesCollapsed;
-        if (state.allCategoriesCollapsed) {
-          state.channels.forEach((c) => state.collapsedCategories.add(c.category || '未分類'));
-          el.btnToggleAllCats.textContent = 'すべて開く';
-        } else {
-          state.collapsedCategories.clear();
-          el.btnToggleAllCats.textContent = 'すべて折りたたむ';
-        }
-        renderChannelsList();
       });
     }
 
@@ -1289,14 +1300,16 @@
       const row = document.createElement('div');
       row.className = 'field-editor-row';
       row.innerHTML = `
-        <div class="field-inputs">
-          <input type="text" class="form-input field-name-input" placeholder="項目名" value="${escapeHtml(f.name)}" style="flex:1;">
-          <input type="text" class="form-input field-val-input" placeholder="値" value="${escapeHtml(f.value)}" style="flex:2;">
+        <div class="field-inputs-stacked">
+          <div class="field-name-row">
+            <input type="text" class="form-input field-name-input" placeholder="項目名 (例: 参加条件)" value="${escapeHtml(f.name)}">
+            <label class="field-inline-toggle">
+              <input type="checkbox" ${f.inline ? 'checked' : ''}>横並び
+            </label>
+            <button type="button" class="btn-del-row" title="削除">&times;</button>
+          </div>
+          <textarea class="form-input field-val-input" rows="2" placeholder="値 (改行・Markdown対応)">${escapeHtml(f.value)}</textarea>
         </div>
-        <label class="field-inline-toggle">
-          <input type="checkbox" ${f.inline ? 'checked' : ''}>横並び
-        </label>
-        <button type="button" class="btn-del-row" title="削除">&times;</button>
       `;
 
       const nameInput = row.querySelector('.field-name-input');

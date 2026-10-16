@@ -19,37 +19,57 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20261017_v8">
+  <link rel="stylesheet" href="style.css?v=20261017_v9">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
 </head>
 <body>
   <div class="app-container">
-    <!-- Global Header -->
-    <header class="app-header">
-      <div class="header-brand">
-        <div class="brand-icon">
-          <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
-            <path d="M19.27 5.33C17.94 4.71 16.5 4.26 15 4a.09.09 0 0 0-.07.03c-.18.33-.39.76-.53 1.09a16.09 16.09 0 0 0-4.8 0c-.14-.34-.35-.76-.54-1.09-.01-.02-.04-.03-.07-.03-1.5.26-2.93.71-4.27 1.33-.01 0-.02.01-.03.02-2.72 4.07-3.47 8.03-3.1 11.95 0 .02.01.04.03.05 1.8 1.32 3.53 2.12 5.24 2.65.03.01.06 0 .07-.02.4-.55.76-1.13 1.07-1.74.02-.04 0-.08-.04-.09-.57-.22-1.11-.48-1.64-.78-.04-.02-.04-.08-.01-.11.11-.08.22-.17.33-.25.02-.02.05-.02.07-.01 3.44 1.57 7.15 1.57 10.55 0 .02-.01.05-.01.07.01.11.09.22.17.33.26.04.03.04.09-.01.11-.52.31-1.07.56-1.64.78-.04.01-.05.06-.04.09.32.61.68 1.19 1.07 1.74.02.02.04.03.07.02 1.72-.53 3.45-1.33 5.25-2.65.02-.01.03-.03.03-.05.44-4.53-.73-8.46-3.1-11.95-.01-.01-.02-.02-.04-.02zM8.52 14.91c-1.03 0-1.89-.95-1.89-2.12s.84-2.12 1.89-2.12c1.06 0 1.9.96 1.89 2.12 0 1.17-.84 2.12-1.89 2.12zm6.97 0c-1.03 0-1.89-.95-1.89-2.12s.84-2.12 1.89-2.12c1.06 0 1.9.96 1.89 2.12 0 1.17-.83 2.12-1.89 2.12z"/>
-          </svg>
+    <!-- Dynamic Island Floating Capsule Navigation -->
+    <div class="island-container">
+      <header class="dynamic-island" id="dynamic-island">
+        <div class="island-brand">
+          <span class="island-logo-wrap">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+              <path d="M19.27 5.33C17.94 4.71 16.5 4.26 15 4a.09.09 0 0 0-.07.03c-.18.33-.39.76-.53 1.09a16.09 16.09 0 0 0-4.8 0c-.14-.34-.35-.76-.54-1.09-.01-.02-.04-.03-.07-.03-1.5.26-2.93.71-4.27 1.33-.01 0-.02.01-.03.02-2.72 4.07-3.47 8.03-3.1 11.95 0 .02.01.04.03.05 1.8 1.32 3.53 2.12 5.24 2.65.03.01.06 0 .07-.02.4-.55.76-1.13 1.07-1.74.02-.04 0-.08-.04-.09-.57-.22-1.11-.48-1.64-.78-.04-.02-.04-.08-.01-.11.11-.08.22-.17.33-.25.02-.02.05-.02.07-.01 3.44 1.57 7.15 1.57 10.55 0 .02-.01.05-.01.07.01.11.09.22.17.33.26.04.03.04.09-.01.11-.52.31-1.07.56-1.64.78-.04.01-.05.06-.04.09.32.61.68 1.19 1.07 1.74.02.02.04.03.07.02 1.72-.53 3.45-1.33 5.25-2.65.02-.01.03-.03.03-.05.44-4.53-.73-8.46-3.1-11.95-.01-.01-.02-.02-.04-.02zM8.52 14.91c-1.03 0-1.89-.95-1.89-2.12s.84-2.12 1.89-2.12c1.06 0 1.9.96 1.89 2.12 0 1.17-.84 2.12-1.89 2.12zm6.97 0c-1.03 0-1.89-.95-1.89-2.12s.84-2.12 1.89-2.12c1.06 0 1.9.96 1.89 2.12 0 1.17-.83 2.12-1.89 2.12z"/>
+            </svg>
+          </span>
+          <span class="island-title">予約</span>
         </div>
-        <div class="brand-text">
-          <h1>メッセージ予約</h1>
-        </div>
-      </div>
-      <div class="header-actions">
-        <button id="btn-theme-toggle" class="btn-icon" title="テーマ切り替え" aria-label="テーマ切り替え">
-          <!-- JSでSVGを動的描画 -->
-          <span id="theme-icon-wrap"></span>
-        </button>
-        <div id="header-session-actions" style="display: flex; gap: 8px;">
-          <button id="btn-import-open" class="btn btn-secondary btn-sm">
-            <svg viewBox="0 0 20 20" width="14" height="14" fill="currentColor"><path d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z"/></svg>
-            JSON読込
+
+        <div class="island-sep"></div>
+
+        <!-- 1, 2, 3 はタイトルだけ出してシンプルに -->
+        <nav class="island-steps" aria-label="作成ステップ">
+          <button type="button" class="step-tab active" data-step="1">
+            <span class="step-badge">1</span>
+            <span class="step-title">基本設定</span>
           </button>
-          <button id="btn-reset" class="btn btn-ghost btn-sm">リセット</button>
+          <button type="button" class="step-tab" data-step="2">
+            <span class="step-badge">2</span>
+            <span class="step-title">メッセージ</span>
+          </button>
+          <button type="button" class="step-tab" data-step="3">
+            <span class="step-badge">3</span>
+            <span class="step-title">完了</span>
+          </button>
+        </nav>
+
+        <div class="island-sep"></div>
+
+        <!-- 右端のアクション群 -->
+        <div class="island-tools" id="header-session-actions">
+          <button type="button" id="btn-theme-toggle" class="island-btn-icon" title="テーマ切り替え" aria-label="テーマ切り替え">
+            <span id="theme-icon-wrap"></span>
+          </button>
+          <button type="button" id="btn-import-open" class="island-btn-icon" title="JSON読込" aria-label="JSON読込">
+            <svg viewBox="0 0 20 20" width="15" height="15" fill="currentColor"><path d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z"/></svg>
+          </button>
+          <button type="button" id="btn-reset" class="island-btn-icon" title="リセット" aria-label="リセット">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path><path d="M21 3v5h-5"></path><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path><path d="M3 21v-5h5"></path></svg>
+          </button>
         </div>
-      </div>
-    </header>
+      </header>
+    </div>
 
     <!-- No Bot Session View (Bot発行URLでない場合に静かに表示) -->
     <div id="no-session-view" class="no-session-container" style="display: none;">
@@ -67,37 +87,6 @@
 
     <!-- Main App Content (Bot発行URL時のみ表示) -->
     <div id="app-main-content">
-      <!-- Stepper Navigation -->
-      <nav class="stepper-nav" aria-label="作成ステップ">
-      <button type="button" class="step-tab active" data-step="1">
-        <span class="step-badge">1</span>
-        <span class="step-info">
-          <span class="step-title">基本設定</span>
-          <span class="step-sub">チャンネル・送信日時</span>
-        </span>
-      </button>
-      <div class="step-arrow">
-        <svg viewBox="0 0 20 20" width="16" height="16" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/></svg>
-      </div>
-      <button type="button" class="step-tab" data-step="2">
-        <span class="step-badge">2</span>
-        <span class="step-info">
-          <span class="step-title">メッセージ作成</span>
-          <span class="step-sub">本文・Embed・プレビュー</span>
-        </span>
-      </button>
-      <div class="step-arrow">
-        <svg viewBox="0 0 20 20" width="16" height="16" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/></svg>
-      </div>
-      <button type="button" class="step-tab" data-step="3">
-        <span class="step-badge">3</span>
-        <span class="step-info">
-          <span class="step-title">保存・完了</span>
-          <span class="step-sub">JSON保存・登録案内</span>
-        </span>
-      </button>
-    </nav>
-
     <!-- STEP PANES -->
     <div class="step-panes-wrapper">
 
@@ -107,53 +96,43 @@
       <section id="step-pane-1" class="step-pane active">
         <div class="pane-content-narrow">
 
-          <!-- 1-1. 送信先チャンネル選択 (大量チャンネル対応・Discord実順序アコーディオン) -->
+          <!-- 1-1. 送信先チャンネル (Discord内で選ばせるスマート設計) -->
           <div class="section-card">
             <div class="card-header-row">
               <div class="card-title-group">
                 <span class="card-step-num">A</span>
                 <h2>送信先チャンネル</h2>
               </div>
-              <div class="channel-selection-badge">
-                <span id="selected-channel-count" class="badge-highlight">0</span> 選択中
+              <span class="badge-subtle">Discord内で指定</span>
+            </div>
+
+            <div class="channel-destination-card">
+              <div class="channel-dest-left">
+                <span class="channel-dest-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="4" y1="9" x2="20" y2="9"></line><line x1="4" y1="15" x2="20" y2="15"></line><line x1="10" y1="3" x2="8" y2="21"></line><line x1="16" y1="3" x2="14" y2="21"></line></svg>
+                </span>
+                <div class="channel-dest-info">
+                  <span class="channel-dest-name" id="current-channel-display"># test</span>
+                  <span class="channel-dest-hint">Discordコマンドで指定したチャンネルへ自動送信されます</span>
+                </div>
+              </div>
+              <button type="button" id="btn-toggle-custom-channel" class="btn btn-ghost btn-xs">別チャンネルIDを指定</button>
+            </div>
+
+            <!-- 別チャンネルID直接入力 (折りたたみ) -->
+            <div id="custom-channel-wrap" class="custom-channel-box mt-3" style="display: none;">
+              <div class="custom-channel-row">
+                <input type="text" id="input-custom-channel-id" class="form-input" placeholder="変更先のチャンネルID (17〜20桁の数字) を入力..." maxlength="22">
+                <button type="button" id="btn-apply-custom-channel" class="btn btn-primary btn-xs">適用</button>
+                <button type="button" id="btn-cancel-custom-channel" class="btn btn-ghost btn-xs">キャンセル</button>
               </div>
             </div>
 
-            <!-- 選択中チャンネルのタグ一覧 -->
-            <div id="selected-channels-chips" class="selected-chips-container">
-              <!-- JSで選択中のタグを描画 -->
-            </div>
-
-            <!-- チャンネル検索 & 操作ツールバー -->
-            <div class="channel-toolbar">
-              <div class="search-input-wrap">
-                <svg viewBox="0 0 20 20" width="16" height="16" fill="currentColor" class="search-icon">
-                  <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/>
-                </svg>
-                <input type="text" id="channel-search-input" placeholder="チャンネルやカテゴリを絞り込み...">
-                <button type="button" id="btn-clear-search" class="clear-search-btn" style="display: none;">&times;</button>
-              </div>
-              <div class="toolbar-actions">
-                <button type="button" id="btn-toggle-add-channel" class="btn btn-ghost btn-xs">+ IDで追加</button>
-                <button type="button" id="btn-toggle-all-cats" class="btn btn-ghost btn-xs">すべて開く</button>
-                <button type="button" id="btn-select-all-channels" class="btn btn-ghost btn-xs">すべて選択</button>
-                <button type="button" id="btn-clear-all-channels" class="btn btn-ghost btn-xs">選択解除</button>
-              </div>
-            </div>
-
-            <!-- チャンネルID直接追加フォーム (折りたたみ) -->
-            <div id="channel-manual-add-wrap" class="channel-manual-add-row" style="display: none;">
-              <input type="text" id="input-manual-channel-id" placeholder="チャンネルID (17〜20桁の数字) を入力..." maxlength="22">
-              <button type="button" id="btn-submit-add-channel" class="btn btn-primary btn-xs">追加して選択</button>
-              <button type="button" id="btn-cancel-add-channel" class="btn btn-ghost btn-xs">キャンセル</button>
-            </div>
-
-            <!-- チャンネル一覧スクロールエリア (Discord実順序アコーディオン) -->
-            <div id="channel-list-container" class="channel-list-scroll">
-              <div id="channel-empty-hint" class="empty-hint" style="display: none;">
-                該当するチャンネルが見つかりません
-              </div>
-            </div>
+            <!-- 内部保持用バッジ (JS互換性維持) -->
+            <span id="selected-channel-count" style="display: none;">1</span>
+            <div id="selected-channels-chips" style="display: none;"></div>
+            <div id="channel-list-container" style="display: none;"></div>
+            <div id="channel-empty-hint" style="display: none;"></div>
           </div>
 
           <!-- 1-2. 送信タイミング (即時 / 日時指定 + スマホ簡単クイック選択) -->
@@ -754,26 +733,55 @@
               </div>
             </div>
 
-            <!-- 大きな時刻選択 -->
+            <!-- スマートな時刻ピッカー (飛び出しselect完全廃止) -->
             <div class="time-widget">
               <span class="time-widget-title">送信時刻 (JST)</span>
-              <div class="time-select-row">
-                <div class="time-picker-col">
-                  <label for="time-modal-hour">時</label>
-                  <select id="time-modal-hour" class="time-select-box"></select>
+              
+              <div class="time-stepper-container">
+                <!-- 時 (00-23) -->
+                <div class="time-stepper-col">
+                  <span class="stepper-label">時 (00-23)</span>
+                  <div class="stepper-box">
+                    <button type="button" id="btn-hour-step-up" class="btn-stepper" aria-label="1時間進める">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"></polyline></svg>
+                    </button>
+                    <input type="text" id="time-modal-hour" class="stepper-input" value="12" maxlength="2" inputmode="numeric">
+                    <button type="button" id="btn-hour-step-down" class="btn-stepper" aria-label="1時間戻す">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                    </button>
+                  </div>
                 </div>
-                <span class="time-colon">:</span>
-                <div class="time-picker-col">
-                  <label for="time-modal-minute">分</label>
-                  <select id="time-modal-minute" class="time-select-box"></select>
+
+                <span class="time-stepper-sep">:</span>
+
+                <!-- 分 (00-59) -->
+                <div class="time-stepper-col">
+                  <span class="stepper-label">分 (00-59)</span>
+                  <div class="stepper-box">
+                    <button type="button" id="btn-minute-step-up" class="btn-stepper" aria-label="5分進める">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"></polyline></svg>
+                    </button>
+                    <input type="text" id="time-modal-minute" class="stepper-input" value="00" maxlength="2" inputmode="numeric">
+                    <button type="button" id="btn-minute-step-down" class="btn-stepper" aria-label="5分戻す">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                    </button>
+                  </div>
                 </div>
               </div>
+
+              <!-- クイック分ボタン (:00, :15, :30, :45) -->
+              <div class="quick-min-row">
+                <button type="button" class="btn-quick-min" data-min="0">:00</button>
+                <button type="button" class="btn-quick-min" data-min="15">:15</button>
+                <button type="button" class="btn-quick-min" data-min="30">:30</button>
+                <button type="button" class="btn-quick-min" data-min="45">:45</button>
+              </div>
+
               <div class="time-preview-banner">
                 <span class="preview-mini-label">選択中の日時:</span>
-                <span id="modal-dt-preview-text" class="preview-mini-value">--/--(--) --:--</span>
+                <span id="modal-dt-preview-text" class="preview-mini-value">----/--/--(--) --:--</span>
               </div>
             </div>
-
           </div>
         </div>
         <div class="modal-footer">
@@ -787,6 +795,6 @@
     <div id="toast" class="toast" style="display: none;"></div>
   </div>
 
-  <script src="app.js?v=20261017_v8"></script>
+  <script src="app.js?v=20261017_v9"></script>
 </body>
 </html>

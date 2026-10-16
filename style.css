@@ -2871,3 +2871,442 @@ textarea:focus {
   outline: none;
   border-color: var(--brand);
 }
+
+
+/* ==========================================================================
+   Dynamic Island Floating Capsule Navigation
+   ========================================================================== */
+.island-container {
+  display: flex;
+  justify-content: center;
+  position: sticky;
+  top: 14px;
+  z-index: 1000;
+  width: 100%;
+  padding: 0 16px;
+  pointer-events: none; /* 下の要素の操作を阻害しない */
+}
+
+.dynamic-island {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px;
+  background: rgba(18, 22, 30, 0.88);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 9999px;
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  max-width: 95vw;
+}
+
+.dynamic-island:hover {
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(88, 101, 242, 0.3);
+}
+
+:root.light-theme .dynamic-island,
+body.light-theme .dynamic-island {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.04);
+}
+
+.island-brand {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 4px 0 2px;
+  color: var(--brand);
+}
+
+.island-logo-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.island-title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+
+.island-sep {
+  width: 1px;
+  height: 18px;
+  background: var(--border-subtle);
+  flex-shrink: 0;
+}
+
+.island-steps {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.island-steps .step-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 9999px;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  user-select: none;
+}
+
+.island-steps .step-tab:hover {
+  background: var(--border-subtle);
+  color: var(--text-primary);
+}
+
+.island-steps .step-tab.active {
+  background: var(--brand);
+  color: #ffffff;
+  box-shadow: 0 2px 8px var(--brand-glow);
+}
+
+.island-steps .step-tab .step-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  font-size: 0.72rem;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.island-steps .step-tab.active .step-badge {
+  background: #ffffff;
+  color: var(--brand);
+}
+
+.island-tools {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.island-btn-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.island-btn-icon:hover {
+  background: var(--border-subtle);
+  color: var(--text-primary);
+}
+
+/* ==========================================================================
+   Discord-Driven Smart Channel Card
+   ========================================================================== */
+.channel-destination-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+}
+
+.channel-dest-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.channel-dest-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--brand-subtle);
+  color: var(--brand);
+  flex-shrink: 0;
+}
+
+.channel-dest-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.channel-dest-name {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+}
+
+.channel-dest-hint {
+  font-size: 0.76rem;
+  color: var(--text-tertiary);
+}
+
+.custom-channel-box {
+  padding: 10px 14px;
+  background: var(--bg-card);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-sm);
+  animation: fadeIn 0.2s ease;
+}
+
+.custom-channel-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.custom-channel-row input {
+  flex: 1;
+}
+
+.badge-subtle {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: var(--brand-subtle);
+  color: var(--brand);
+}
+
+/* ==========================================================================
+   Custom Time Stepper (No native OS select dropdown overflow)
+   ========================================================================== */
+.time-stepper-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 12px 0 6px;
+}
+
+.time-stepper-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.stepper-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.stepper-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: var(--bg-card);
+  border: 1.5px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 4px;
+  transition: var(--transition);
+}
+
+.stepper-box:focus-within {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px var(--brand-glow);
+}
+
+.btn-stepper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 26px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.btn-stepper:hover {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: #ffffff;
+}
+
+.stepper-input {
+  width: 44px;
+  height: 38px;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-size: 1.35rem;
+  font-weight: 700;
+  text-align: center;
+  font-family: inherit;
+  outline: none;
+}
+
+.time-stepper-sep {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--brand);
+  margin-top: 14px;
+  user-select: none;
+}
+
+.quick-min-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.btn-quick-min {
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.btn-quick-min:hover {
+  border-color: var(--brand);
+  color: var(--brand);
+}
+
+/* ==========================================================================
+   Discord Preview: White Theme & Dark Theme Full Synchronization
+   ========================================================================== */
+:root.light-theme .discord-message-box,
+body.light-theme .discord-message-box {
+  background: #ffffff !important;
+  color: #313338 !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08) !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+
+:root.light-theme .discord-bot-name,
+body.light-theme .discord-bot-name {
+  color: #060607 !important;
+}
+
+:root.light-theme .pv-plain-text,
+body.light-theme .pv-plain-text {
+  color: #313338 !important;
+}
+
+:root.light-theme .discord-embed-card,
+body.light-theme .discord-embed-card {
+  background: #f2f3f5 !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+
+:root.light-theme .pv-title-link,
+:root.light-theme .pv-title-text,
+body.light-theme .pv-title-link,
+body.light-theme .pv-title-text {
+  color: #060607 !important;
+}
+
+:root.light-theme .pv-desc-text,
+body.light-theme .pv-desc-text {
+  color: #2e3338 !important;
+}
+
+:root.light-theme .pv-field-name,
+body.light-theme .pv-field-name {
+  color: #4e5058 !important;
+}
+
+:root.light-theme .pv-field-val,
+body.light-theme .pv-field-val {
+  color: #2e3338 !important;
+}
+
+:root.light-theme .pv-author-name,
+body.light-theme .pv-author-name {
+  color: #2e3338 !important;
+}
+
+:root.light-theme .pv-footer-text,
+body.light-theme .pv-footer-text {
+  color: #5c5e66 !important;
+}
+
+:root.light-theme .pv-discord-btn,
+body.light-theme .pv-discord-btn {
+  background: #e3e5e8 !important;
+  color: #2e3338 !important;
+}
+
+:root.light-theme .pv-discord-btn:hover,
+body.light-theme .pv-discord-btn:hover {
+  background: #d1d5db !important;
+}
+
+/* ==========================================================================
+   Multi-line Field Value (Textarea for newline support)
+   ========================================================================== */
+.field-inputs-stacked {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.field-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.field-name-row .field-name-input {
+  flex: 1;
+}
+
+.field-val-input {
+  width: 100%;
+  resize: vertical;
+  min-height: 52px;
+  font-family: inherit;
+  font-size: 0.88rem;
+  line-height: 1.45;
+  padding: 8px 10px;
+}
+
+.pv-field-val {
+  font-size: 0.85rem;
+  line-height: 1.4;
+  white-space: pre-wrap !important; /* 改行を100%忠実に反映 */
+  word-break: break-word;
+}
