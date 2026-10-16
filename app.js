@@ -9,50 +9,41 @@
   // --- State ---
   const state = {
     currentStep: 1,
-    channels: [], // [{ id, name, category, type, selected: boolean }]
-    timingMode: 'scheduled', // 'scheduled' | 'immediate'
-    date: '',
-    time: '',
-    recurrence: {
-      type: 'none', // 'none' | 'daily' | 'weekdays' | 'weekly' | 'monthly'
-      days: []      // 0: Mon ... 6: Sun
-    },
-    messageType: 'embed', // 'embed' | 'plain'
-    images: [], // [{ filename: string, data: string }]
+    channels: [],
+    timingMode: 'scheduled',
+    recurrence: { type: 'none', days: [] },
+    messageType: 'embed',
+    plainText: '',
     embed: {
       title: '',
+      titleUrl: '',
       description: '',
       color: '#5865F2',
-      author: { name: '', icon_url: '', enabled: false },
-      footer: { text: '', icon_url: '', enabled: false },
-      thumbnail: { data: '', enabled: false },
+      author: {
+        name: '',
+        url: '',
+        iconData: ''
+      },
+      thumbnail: {
+        data: ''
+      },
+      footer: {
+        text: '',
+        iconData: '',
+        timestamp: true
+      },
       fields: []
     },
-    plain: {
-      text: ''
-    },
+    images: [],
     buttons: []
   };
 
-  // --- Helpers ---
-  const $ = (id) => document.getElementById(id);
-  const $$ = (sel) => document.querySelectorAll(sel);
-  const pad = (n) => String(n).padStart(2, '0');
-
-  // --- SVG Icons (No Unicode emojis) ---
-  const SUN_ICON = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>`;
-  const MOON_ICON = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>`;
-  const HASH_ICON = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="9" x2="20" y2="9"></line><line x1="4" y1="15" x2="20" y2="15"></line><line x1="10" y1="3" x2="8" y2="21"></line><line x1="16" y1="3" x2="14" y2="21"></line></svg>`;
-  const VOICE_ICON = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>`;
-  const CLOSE_ICON = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`;
-
-  // --- DOM Elements ---
-  const el = {
+    const el = {
     appMainContent: $('app-main-content'),
     noSessionView: $('no-session-view'),
     headerSessionActions: $('header-session-actions'),
     themeBtn: $('btn-theme-toggle'),
-    themeIcon: $('theme-icon'),
+    themeIcon: $('theme-icon-wrap'),
     btnReset: $('btn-reset'),
     stepTabs: $$('.step-tab'),
     stepPanes: {
@@ -90,52 +81,83 @@
     // Step 1 Navigation
     btnGotoStep2: $('btn-goto-step-2'),
 
-    // Step 2: Editor (In-place & Media)
+    // Step 2: Editor (Split Layout & Media Uploads)
     typeBtns: $$('.type-segment-btn'),
-    embedQuickTools: $('embed-quick-tools'),
-    embedColor: $('embed-color'),
-    embedColorPreview: $('embed-color-preview'),
-    embedColorPill: $('pv-embed-pill'),
-    btnAddField: $('btn-add-field'),
-    btnToggleAuthor: $('btn-toggle-author'),
-    btnToggleFooter: $('btn-toggle-footer'),
-    btnToggleThumb: $('btn-toggle-thumb'),
-    btnAddButton: $('btn-add-button'),
-
-    imageUploadInput: $('image-upload-input'),
-    thumbUploadInput: $('thumb-upload-input'),
-
-    pvTargetBadge: $('preview-target-badge'),
-    pvTime: $('pv-time'),
-    pvPlain: $('pv-plain'),
+    plainEditorSection: $('plain-editor-section'),
+    embedEditorSection: $('embed-editor-section'),
     plainText: $('plain-text'),
     plainCharCount: $('plain-char-count'),
 
-    pvEmbed: $('pv-embed'),
-    embedAuthorRow: $('pv-embed-author'),
-    embedAuthorName: $('embed-author-name'),
-    embedAuthorIcon: $('embed-author-icon'),
-    btnRemoveAuthor: $('btn-remove-author'),
-
+    // Embed Form
     embedTitle: $('embed-title'),
+    embedTitleUrl: $('embed-title-url'),
     embedDesc: $('embed-desc'),
 
-    fieldsContainer: $('pv-embed-fields'),
+    embedColor: $('embed-color'),
+    embedColorHex: $('embed-color-hex'),
+    colorSwatches: $$('.color-swatch'),
 
-    embedFooterRow: $('pv-embed-footer'),
-    embedFooter: $('embed-footer'),
-    embedFooterIcon: $('embed-footer-icon'),
-    btnRemoveFooter: $('btn-remove-footer'),
+    // Thumbnail
+    thumbUploadInput: $('thumb-upload-input'),
+    btnThumbTrigger: $('btn-thumb-trigger'),
+    thumbPreviewWrap: $('thumb-preview-wrap'),
+    thumbPreviewImg: $('thumb-preview-img'),
+    btnThumbClear: $('btn-thumb-clear'),
 
-    thumbBox: $('pv-thumb-box'),
-    embedThumbnail: $('pv-embed-thumbnail'),
-    thumbPlaceholder: $('thumb-placeholder'),
-    btnRemoveThumb: $('btn-remove-thumb'),
+    // Author
+    embedAuthorName: $('embed-author-name'),
+    embedAuthorUrl: $('embed-author-url'),
+    authorIconUploadInput: $('author-icon-upload-input'),
+    btnAuthorIconTrigger: $('btn-author-icon-trigger'),
+    authorIconPreviewWrap: $('author-icon-preview-wrap'),
+    authorIconPreviewImg: $('author-icon-preview-img'),
+    btnAuthorIconClear: $('btn-author-icon-clear'),
 
-    mediaGalleryGrid: $('media-gallery-grid'),
+    // Fields
+    fieldsEditorList: $('fields-editor-list'),
+    btnAddField: $('btn-add-field'),
+
+    // Footer
+    embedFooterText: $('embed-footer-text'),
+    footerIconUploadInput: $('footer-icon-upload-input'),
+    btnFooterIconTrigger: $('btn-footer-icon-trigger'),
+    footerIconPreviewWrap: $('footer-icon-preview-wrap'),
+    footerIconPreviewImg: $('footer-icon-preview-img'),
+    btnFooterIconClear: $('btn-footer-icon-clear'),
+    embedFooterTimestamp: $('embed-footer-timestamp'),
+
+    // Images
+    imageUploadInput: $('image-upload-input'),
     mediaDropzone: $('media-upload-dropzone'),
+    mediaGalleryGrid: $('media-gallery-grid'),
+    uploadedImagesCount: $('uploaded-images-count'),
 
-    buttonsContainer: $('pv-buttons'),
+    // Buttons
+    buttonsEditorList: $('buttons-editor-list'),
+    btnAddButton: $('btn-add-button'),
+
+    // Preview Elements
+    pvTargetBadge: $('preview-target-badge'),
+    pvTime: $('pv-time'),
+    pvPlainWrap: $('pv-plain-wrap'),
+    pvEmbedCard: $('pv-embed-card'),
+    pvEmbedPill: $('pv-embed-pill'),
+    pvEmbedAuthor: $('pv-embed-author'),
+    pvAuthorIcon: $('pv-author-icon'),
+    pvAuthorLink: $('pv-author-link'),
+    pvEmbedTitleWrap: $('pv-embed-title-wrap'),
+    pvEmbedTitle: $('pv-embed-title'),
+    pvEmbedDesc: $('pv-embed-desc'),
+    pvEmbedFields: $('pv-embed-fields'),
+    pvEmbedThumbnail: $('pv-embed-thumbnail'),
+    pvEmbedMainImg: $('pv-embed-main-img'),
+    pvEmbedFooter: $('pv-embed-footer'),
+    pvFooterIcon: $('pv-footer-icon'),
+    pvFooterText: $('pv-footer-text'),
+    pvFooterSep: $('pv-footer-sep'),
+    pvFooterTimestamp: $('pv-footer-timestamp'),
+    pvMediaGallery: $('pv-media-gallery'),
+    pvButtonsWrap: $('pv-buttons-wrap'),
 
     btnBackToStep1: $('btn-back-to-step-1'),
     btnGotoStep3: $('btn-goto-step-3'),
@@ -531,7 +553,7 @@
     });
   }
 
-  // --- Step 2 Events & In-Place Preview/Editor ---
+  // --- Step 2 Events & Real-Time Preview Synchronization ---
   function attachStep2Events() {
     el.stepTabs.forEach((tab) => {
       tab.addEventListener('click', () => {
@@ -552,139 +574,160 @@
 
     el.btnBackToStep1.addEventListener('click', () => goToStep(1));
     el.btnGotoStep3.addEventListener('click', () => {
-      // メッセージのバリデーション
       if (state.messageType === 'plain') {
-        const text = el.plainText.value.trim();
+        const text = state.plainText.trim();
         if (!text && !state.images.length) {
           alert('メッセージ本文を入力するか、画像をアップロードしてください。');
           return;
         }
       } else {
-        const title = el.embedTitle.value.trim();
-        const desc = el.embedDesc.value.trim();
-        if (!title && !desc && !state.images.length && !state.embed.fields.length) {
-          alert('Embedのタイトル、本文、または画像を設定してください。');
+        const title = state.embed.title.trim();
+        const desc = state.embed.description.trim();
+        if (!title && !desc && !state.images.length && !state.embed.fields.length && !state.embed.thumbnail.data && !state.embed.author.name) {
+          alert('Embedのタイトル、本文、作成者、または画像を設定してください。');
           return;
         }
       }
       goToStep(3);
     });
 
-    // Type switch (Embed vs Plain)
+    // Message type switch
     el.typeBtns.forEach((btn) => {
       btn.addEventListener('click', () => {
         el.typeBtns.forEach((b) => b.classList.remove('active'));
         btn.classList.add('active');
         state.messageType = btn.dataset.type;
-        el.pvPlain.style.display = state.messageType === 'plain' ? 'block' : 'none';
-        el.pvEmbed.style.display = state.messageType === 'embed' ? 'flex' : 'none';
-        el.embedQuickTools.style.display = state.messageType === 'embed' ? 'flex' : 'none';
+        el.plainEditorSection.style.display = state.messageType === 'plain' ? 'block' : 'none';
+        el.embedEditorSection.style.display = state.messageType === 'embed' ? 'block' : 'none';
         renderPreview();
       });
     });
 
-    // Color picker
+    // Plain text input
+    el.plainText.addEventListener('input', () => {
+      state.plainText = el.plainText.value;
+      el.plainCharCount.textContent = state.plainText.length;
+      renderPreview();
+    });
+
+    // Embed Basic Inputs
+    el.embedTitle.addEventListener('input', () => {
+      state.embed.title = el.embedTitle.value;
+      renderPreview();
+    });
+    el.embedTitleUrl.addEventListener('input', () => {
+      state.embed.titleUrl = el.embedTitleUrl.value;
+      renderPreview();
+    });
+    el.embedDesc.addEventListener('input', () => {
+      state.embed.description = el.embedDesc.value;
+      renderPreview();
+    });
+
+    // Color Pickers
     el.embedColor.addEventListener('input', (e) => {
       const col = e.target.value;
       state.embed.color = col;
-      if (el.embedColorPreview) el.embedColorPreview.style.background = col;
-      if (el.embedColorPill) el.embedColorPill.style.background = col;
+      el.embedColorHex.value = col.toUpperCase();
+      renderPreview();
     });
-    if (el.embedColorPill) {
-      el.embedColorPill.addEventListener('click', () => el.embedColor.click());
-    }
-
-    // Toggle Author
-    el.btnToggleAuthor.addEventListener('click', () => {
-      state.embed.author.enabled = !state.embed.author.enabled;
-      el.embedAuthorRow.style.display = state.embed.author.enabled ? 'flex' : 'none';
-      el.btnToggleAuthor.classList.toggle('active', state.embed.author.enabled);
-      if (state.embed.author.enabled) el.embedAuthorName.focus();
-    });
-    el.btnRemoveAuthor.addEventListener('click', () => {
-      state.embed.author.enabled = false;
-      el.embedAuthorName.value = '';
-      el.embedAuthorIcon.value = '';
-      el.embedAuthorRow.style.display = 'none';
-      el.btnToggleAuthor.classList.remove('active');
-    });
-
-    // Toggle Footer
-    el.btnToggleFooter.addEventListener('click', () => {
-      state.embed.footer.enabled = !state.embed.footer.enabled;
-      el.embedFooterRow.style.display = state.embed.footer.enabled ? 'flex' : 'none';
-      el.btnToggleFooter.classList.toggle('active', state.embed.footer.enabled);
-      if (state.embed.footer.enabled) el.embedFooter.focus();
-    });
-    el.btnRemoveFooter.addEventListener('click', () => {
-      state.embed.footer.enabled = false;
-      el.embedFooter.value = '';
-      el.embedFooterIcon.value = '';
-      el.embedFooterRow.style.display = 'none';
-      el.btnToggleFooter.classList.remove('active');
-    });
-
-    // Toggle Thumbnail
-    el.btnToggleThumb.addEventListener('click', () => {
-      state.embed.thumbnail.enabled = !state.embed.thumbnail.enabled;
-      el.thumbBox.style.display = state.embed.thumbnail.enabled ? 'flex' : 'none';
-      el.btnToggleThumb.classList.toggle('active', state.embed.thumbnail.enabled);
-      if (state.embed.thumbnail.enabled && !state.embed.thumbnail.data) {
-        el.thumbUploadInput.click();
+    el.embedColorHex.addEventListener('input', (e) => {
+      let val = e.target.value.trim();
+      if (!val.startsWith('#')) val = '#' + val;
+      if (/^#[0-9A-Fa-f]{6}$/.test(val)) {
+        state.embed.color = val;
+        el.embedColor.value = val;
+        renderPreview();
       }
     });
-    el.thumbBox.addEventListener('click', () => el.thumbUploadInput.click());
-    el.thumbUploadInput.addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (file && file.type.startsWith('image/')) {
-        const reader = new FileReader();
-        reader.onload = (ev) => {
-          state.embed.thumbnail.data = ev.target.result;
-          el.embedThumbnail.src = ev.target.result;
-          el.embedThumbnail.style.display = 'block';
-          el.thumbPlaceholder.style.display = 'none';
-        };
-        reader.readAsDataURL(file);
+    el.colorSwatches.forEach((swatch) => {
+      swatch.addEventListener('click', () => {
+        const col = swatch.dataset.color;
+        state.embed.color = col;
+        el.embedColor.value = col;
+        el.embedColorHex.value = col.toUpperCase();
+        renderPreview();
+      });
+    });
+
+    // Thumbnail Uploader (PC & Mobile)
+    setupSingleUploader(
+      el.thumbUploadInput,
+      el.btnThumbTrigger,
+      el.thumbPreviewWrap,
+      el.thumbPreviewImg,
+      el.btnThumbClear,
+      (dataUrl) => {
+        state.embed.thumbnail.data = dataUrl;
+        renderPreview();
       }
-      e.target.value = '';
-    });
-    el.btnRemoveThumb.addEventListener('click', (e) => {
-      e.stopPropagation();
-      state.embed.thumbnail.data = '';
-      state.embed.thumbnail.enabled = false;
-      el.embedThumbnail.src = '';
-      el.embedThumbnail.style.display = 'none';
-      el.thumbPlaceholder.style.display = 'flex';
-      el.thumbBox.style.display = 'none';
-      el.btnToggleThumb.classList.remove('active');
-    });
+    );
 
-    // Plain text input
-    el.plainText.addEventListener('input', () => {
-      el.plainCharCount.textContent = el.plainText.value.length;
+    // Author Inputs & Icon Uploader
+    el.embedAuthorName.addEventListener('input', () => {
+      state.embed.author.name = el.embedAuthorName.value;
+      renderPreview();
     });
+    el.embedAuthorUrl.addEventListener('input', () => {
+      state.embed.author.url = el.embedAuthorUrl.value;
+      renderPreview();
+    });
+    setupSingleUploader(
+      el.authorIconUploadInput,
+      el.btnAuthorIconTrigger,
+      el.authorIconPreviewWrap,
+      el.authorIconPreviewImg,
+      el.btnAuthorIconClear,
+      (dataUrl) => {
+        state.embed.author.iconData = dataUrl;
+        renderPreview();
+      }
+    );
 
-    // Fields
+    // Footer Inputs & Icon Uploader
+    el.embedFooterText.addEventListener('input', () => {
+      state.embed.footer.text = el.embedFooterText.value;
+      renderPreview();
+    });
+    el.embedFooterTimestamp.addEventListener('change', () => {
+      state.embed.footer.timestamp = el.embedFooterTimestamp.checked;
+      renderPreview();
+    });
+    setupSingleUploader(
+      el.footerIconUploadInput,
+      el.btnFooterIconTrigger,
+      el.footerIconPreviewWrap,
+      el.footerIconPreviewImg,
+      el.btnFooterIconClear,
+      (dataUrl) => {
+        state.embed.footer.iconData = dataUrl;
+        renderPreview();
+      }
+    );
+
+    // Fields Management
     el.btnAddField.addEventListener('click', () => {
       if (state.embed.fields.length >= 25) {
         alert('フィールドは最大25個までです。');
         return;
       }
       state.embed.fields.push({ name: '', value: '', inline: false });
-      renderFieldsList();
+      renderFieldsEditor();
+      renderPreview();
     });
 
-    // Buttons
+    // Buttons Management
     el.btnAddButton.addEventListener('click', () => {
       if (state.buttons.length >= 5) {
         alert('ボタンは最大5個までです。');
         return;
       }
       state.buttons.push({ label: '', url: '' });
-      renderButtonsList();
+      renderButtonsEditor();
+      renderPreview();
     });
 
-    // Multiple Media Upload (PC & Mobile & Drag and drop)
+    // Multiple Media Upload (Drag and drop & File select)
     el.mediaDropzone.addEventListener('click', () => el.imageUploadInput.click());
     el.imageUploadInput.addEventListener('change', (e) => {
       if (e.target.files && e.target.files.length) {
@@ -706,6 +749,40 @@
       if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) {
         handleImageFiles(e.dataTransfer.files);
       }
+    });
+
+    // 初期状態でフィールドが空なら1つ追加しておく (すべての項目をデフォルト表示)
+    if (!state.embed.fields.length) {
+      state.embed.fields.push({ name: '', value: '', inline: false });
+    }
+
+    renderFieldsEditor();
+    renderButtonsEditor();
+    renderMediaGallery();
+    renderPreview();
+  }
+
+  function setupSingleUploader(inputEl, triggerBtn, previewWrap, previewImg, clearBtn, onDataChanged) {
+    triggerBtn.addEventListener('click', () => inputEl.click());
+    inputEl.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file && file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          previewImg.src = ev.target.result;
+          previewWrap.style.display = 'flex';
+          triggerBtn.style.display = 'none';
+          onDataChanged(ev.target.result);
+        };
+        reader.readAsDataURL(file);
+      }
+      e.target.value = '';
+    });
+    clearBtn.addEventListener('click', () => {
+      previewImg.src = '';
+      previewWrap.style.display = 'none';
+      triggerBtn.style.display = 'inline-flex';
+      onDataChanged('');
     });
   }
 
@@ -729,6 +806,7 @@
         loadedCount++;
         if (loadedCount === files.length) {
           renderMediaGallery();
+          renderPreview();
         }
       };
       reader.readAsDataURL(file);
@@ -736,6 +814,7 @@
   }
 
   function renderMediaGallery() {
+    el.uploadedImagesCount.textContent = state.images.length;
     el.mediaGalleryGrid.innerHTML = '';
     if (!state.images.length) {
       el.mediaGalleryGrid.style.display = 'none';
@@ -755,95 +834,225 @@
         e.stopPropagation();
         state.images.splice(idx, 1);
         renderMediaGallery();
+        renderPreview();
       });
 
       el.mediaGalleryGrid.appendChild(card);
     });
   }
 
-  function renderFieldsList() {
-    el.fieldsContainer.innerHTML = '';
-    if (!state.embed.fields.length) {
-      el.fieldsContainer.style.display = 'none';
-      return;
-    }
-    el.fieldsContainer.style.display = 'flex';
-
+  function renderFieldsEditor() {
+    el.fieldsEditorList.innerHTML = '';
     state.embed.fields.forEach((f, idx) => {
-      const card = document.createElement('div');
-      card.className = 'editable-field-card';
-      card.innerHTML = `
-        <div class="field-header-row">
-          <input type="text" class="inline-input field-name-input" placeholder="項目名" value="${escapeHtml(f.name)}" style="flex:1;">
-          <label class="field-inline-toggle">
-            <input type="checkbox" ${f.inline ? 'checked' : ''}>横並び
-          </label>
-          <button type="button" class="btn-item-del" title="項目を削除">&times;</button>
+      const row = document.createElement('div');
+      row.className = 'field-editor-row';
+      row.innerHTML = `
+        <div class="field-inputs">
+          <input type="text" class="form-input field-name-input" placeholder="項目名" value="${escapeHtml(f.name)}" style="flex:1;">
+          <input type="text" class="form-input field-val-input" placeholder="値" value="${escapeHtml(f.value)}" style="flex:2;">
         </div>
-        <input type="text" class="inline-input field-val-input" placeholder="値" value="${escapeHtml(f.value)}">
+        <label class="field-inline-toggle">
+          <input type="checkbox" ${f.inline ? 'checked' : ''}>横並び
+        </label>
+        <button type="button" class="btn-del-row" title="削除">&times;</button>
       `;
 
-      const nameInput = card.querySelector('.field-name-input');
-      const valInput = card.querySelector('.field-val-input');
-      const inlineCheck = card.querySelector('input[type="checkbox"]');
-      const delBtn = card.querySelector('.btn-item-del');
+      const nameInput = row.querySelector('.field-name-input');
+      const valInput = row.querySelector('.field-val-input');
+      const inlineCheck = row.querySelector('input[type="checkbox"]');
+      const delBtn = row.querySelector('.btn-del-row');
 
-      nameInput.addEventListener('input', () => { f.name = nameInput.value; });
-      valInput.addEventListener('input', () => { f.value = valInput.value; });
-      inlineCheck.addEventListener('change', () => { f.inline = inlineCheck.checked; });
+      nameInput.addEventListener('input', () => { f.name = nameInput.value; renderPreview(); });
+      valInput.addEventListener('input', () => { f.value = valInput.value; renderPreview(); });
+      inlineCheck.addEventListener('change', () => { f.inline = inlineCheck.checked; renderPreview(); });
       delBtn.addEventListener('click', () => {
         state.embed.fields.splice(idx, 1);
-        renderFieldsList();
+        renderFieldsEditor();
+        renderPreview();
       });
 
-      el.fieldsContainer.appendChild(card);
+      el.fieldsEditorList.appendChild(row);
     });
   }
 
-  function renderButtonsList() {
-    el.buttonsContainer.innerHTML = '';
-    if (!state.buttons.length) {
-      el.buttonsContainer.style.display = 'none';
-      return;
-    }
-    el.buttonsContainer.style.display = 'flex';
-
+  function renderButtonsEditor() {
+    el.buttonsEditorList.innerHTML = '';
     state.buttons.forEach((b, idx) => {
-      const card = document.createElement('div');
-      card.className = 'editable-btn-card';
-      card.innerHTML = `
-        <input type="text" class="inline-input editable-btn-label" placeholder="ボタン名" value="${escapeHtml(b.label)}">
-        <input type="url" class="inline-input editable-btn-url" placeholder="https://..." value="${escapeHtml(b.url)}">
-        <button type="button" class="btn-item-del" title="ボタンを削除">&times;</button>
+      const row = document.createElement('div');
+      row.className = 'button-editor-row';
+      row.innerHTML = `
+        <div class="button-inputs">
+          <input type="text" class="form-input btn-label-input" placeholder="ボタン名" value="${escapeHtml(b.label)}" style="flex:1;">
+          <input type="url" class="form-input btn-url-input" placeholder="https://..." value="${escapeHtml(b.url)}" style="flex:2;">
+        </div>
+        <button type="button" class="btn-del-row" title="削除">&times;</button>
       `;
 
-      const [labelInput, urlInput] = card.querySelectorAll('input');
-      const delBtn = card.querySelector('.btn-item-del');
+      const [labelInput, urlInput] = row.querySelectorAll('input');
+      const delBtn = row.querySelector('.btn-del-row');
 
-      labelInput.addEventListener('input', () => { b.label = labelInput.value; });
-      urlInput.addEventListener('input', () => { b.url = urlInput.value; });
+      labelInput.addEventListener('input', () => { b.label = labelInput.value; renderPreview(); });
+      urlInput.addEventListener('input', () => { b.url = urlInput.value; renderPreview(); });
       delBtn.addEventListener('click', () => {
         state.buttons.splice(idx, 1);
-        renderButtonsList();
+        renderButtonsEditor();
+        renderPreview();
       });
 
-      el.buttonsContainer.appendChild(card);
+      el.buttonsEditorList.appendChild(row);
     });
   }
 
   function renderPreview() {
     if (state.messageType === 'plain') {
-      el.pvPlain.style.display = 'block';
-      el.pvEmbed.style.display = 'none';
+      el.pvPlainWrap.style.display = 'block';
+      el.pvPlainWrap.textContent = state.plainText || '（メッセージ本文を入力してください）';
+      el.pvEmbedCard.style.display = 'none';
+
+      // ギャラリー画像
+      el.pvMediaGallery.innerHTML = '';
+      if (state.images.length) {
+        el.pvMediaGallery.style.display = 'grid';
+        state.images.forEach((img) => {
+          const imgEl = document.createElement('img');
+          imgEl.src = img.data;
+          el.pvMediaGallery.appendChild(imgEl);
+        });
+      } else {
+        el.pvMediaGallery.style.display = 'none';
+      }
     } else {
-      el.pvPlain.style.display = 'none';
-      el.pvEmbed.style.display = 'flex';
-      if (el.embedColorPill) el.embedColorPill.style.background = state.embed.color || '#5865F2';
-      if (el.embedColorPreview) el.embedColorPreview.style.background = state.embed.color || '#5865F2';
+      el.pvPlainWrap.style.display = 'none';
+      el.pvEmbedCard.style.display = 'flex';
+
+      // Accent color
+      el.pvEmbedPill.style.background = state.embed.color || '#5865F2';
+
+      // Author
+      const hasAuthor = !!(state.embed.author.name.trim() || state.embed.author.iconData);
+      if (hasAuthor) {
+        el.pvEmbedAuthor.style.display = 'flex';
+        if (state.embed.author.iconData) {
+          el.pvAuthorIcon.src = state.embed.author.iconData;
+          el.pvAuthorIcon.style.display = 'block';
+        } else {
+          el.pvAuthorIcon.style.display = 'none';
+        }
+        el.pvAuthorLink.textContent = state.embed.author.name || '作成者';
+        if (state.embed.author.url.trim()) {
+          el.pvAuthorLink.href = state.embed.author.url;
+        } else {
+          el.pvAuthorLink.removeAttribute('href');
+        }
+      } else {
+        el.pvEmbedAuthor.style.display = 'none';
+      }
+
+      // Title
+      if (state.embed.title.trim()) {
+        el.pvEmbedTitleWrap.style.display = 'block';
+        el.pvEmbedTitle.textContent = state.embed.title;
+        if (state.embed.titleUrl.trim()) {
+          el.pvEmbedTitle.href = state.embed.titleUrl;
+          el.pvEmbedTitle.className = 'pv-title-link';
+        } else {
+          el.pvEmbedTitle.removeAttribute('href');
+          el.pvEmbedTitle.className = 'pv-title-text';
+        }
+      } else {
+        el.pvEmbedTitleWrap.style.display = 'none';
+      }
+
+      // Description
+      if (state.embed.description.trim()) {
+        el.pvEmbedDesc.style.display = 'block';
+        el.pvEmbedDesc.textContent = state.embed.description;
+      } else {
+        el.pvEmbedDesc.style.display = 'none';
+      }
+
+      // Fields
+      const validFields = state.embed.fields.filter((f) => f.name.trim() || f.value.trim());
+      el.pvEmbedFields.innerHTML = '';
+      if (validFields.length) {
+        el.pvEmbedFields.style.display = 'grid';
+        validFields.forEach((f) => {
+          const col = document.createElement('div');
+          col.className = 'pv-field-col' + (f.inline ? '' : ' full-width');
+          col.innerHTML = `
+            <div class="pv-field-name">${escapeHtml(f.name || '​')}</div>
+            <div class="pv-field-value">${escapeHtml(f.value || '​')}</div>
+          `;
+          el.pvEmbedFields.appendChild(col);
+        });
+      } else {
+        el.pvEmbedFields.style.display = 'none';
+      }
+
+      // Thumbnail
+      if (state.embed.thumbnail.data) {
+        el.pvEmbedThumbnail.src = state.embed.thumbnail.data;
+        el.pvEmbedThumbnail.style.display = 'block';
+      } else {
+        el.pvEmbedThumbnail.style.display = 'none';
+      }
+
+      // Main image (1枚目をEmbed内に表示)
+      if (state.images.length > 0) {
+        el.pvEmbedMainImg.src = state.images[0].data;
+        el.pvEmbedMainImg.style.display = 'block';
+      } else {
+        el.pvEmbedMainImg.style.display = 'none';
+      }
+
+      // 2枚目以降の画像をEmbed下にグリッド表示
+      el.pvMediaGallery.innerHTML = '';
+      if (state.images.length > 1) {
+        el.pvMediaGallery.style.display = 'grid';
+        state.images.slice(1).forEach((img) => {
+          const imgEl = document.createElement('img');
+          imgEl.src = img.data;
+          el.pvMediaGallery.appendChild(imgEl);
+        });
+      } else {
+        el.pvMediaGallery.style.display = 'none';
+      }
+
+      // Footer
+      const hasFooter = !!(state.embed.footer.text.trim() || state.embed.footer.iconData || state.embed.footer.timestamp);
+      if (hasFooter) {
+        el.pvEmbedFooter.style.display = 'flex';
+        if (state.embed.footer.iconData) {
+          el.pvFooterIcon.src = state.embed.footer.iconData;
+          el.pvFooterIcon.style.display = 'block';
+        } else {
+          el.pvFooterIcon.style.display = 'none';
+        }
+        el.pvFooterText.textContent = state.embed.footer.text || '';
+        el.pvFooterSep.style.display = (state.embed.footer.text && state.embed.footer.timestamp) ? 'inline' : 'none';
+        el.pvFooterTimestamp.style.display = state.embed.footer.timestamp ? 'inline' : 'none';
+      } else {
+        el.pvEmbedFooter.style.display = 'none';
+      }
     }
-    renderMediaGallery();
-    renderFieldsList();
-    renderButtonsList();
+
+    // Buttons (Embed & Plain共通)
+    const validBtns = state.buttons.filter((b) => b.label.trim() && b.url.trim());
+    el.pvButtonsWrap.innerHTML = '';
+    if (validBtns.length) {
+      el.pvButtonsWrap.style.display = 'flex';
+      validBtns.forEach((b) => {
+        const btn = document.createElement('a');
+        btn.className = 'pv-discord-btn';
+        btn.href = b.url;
+        btn.target = '_blank';
+        btn.rel = 'noopener';
+        btn.textContent = b.label;
+        el.pvButtonsWrap.appendChild(btn);
+      });
+    } else {
+      el.pvButtonsWrap.style.display = 'none';
+    }
   }
 
   // --- Step 3: Final JSON Build & Download ---
@@ -859,7 +1068,6 @@
       datetimeStr = `${dateVal}T${timeVal}:00+09:00`;
     }
 
-    // Recurrence
     const recurrence = { type: isImmediate ? 'none' : state.recurrence.type };
     if (!isImmediate && state.recurrence.type === 'weekly') {
       const days = Array.from(el.weekdayChecks)
@@ -884,9 +1092,8 @@
 
     if (state.messageType === 'plain') {
       payload.content = {
-        text: el.plainText.value.trim()
+        text: state.plainText.trim()
       };
-      // Images
       if (state.images.length) {
         payload.content.images = state.images.map((img) => ({
           filename: img.filename,
@@ -897,11 +1104,47 @@
       }
     } else {
       const content = {
-        title: el.embedTitle.value.trim() || undefined,
-        description: el.embedDesc.value.trim() || undefined,
         color: state.embed.color || '#5865F2'
       };
 
+      if (state.embed.title.trim()) content.title = state.embed.title.trim();
+      if (state.embed.titleUrl.trim()) content.title_url = state.embed.titleUrl.trim();
+      if (state.embed.description.trim()) content.description = state.embed.description.trim();
+
+      // Author
+      if (state.embed.author.name.trim() || state.embed.author.iconData) {
+        content.author = {};
+        if (state.embed.author.name.trim()) content.author.name = state.embed.author.name.trim();
+        if (state.embed.author.url.trim()) content.author.url = state.embed.author.url.trim();
+        if (state.embed.author.iconData) {
+          content.author.icon_data = state.embed.author.iconData;
+          content.author.icon_url = state.embed.author.iconData;
+        }
+      }
+
+      // Thumbnail
+      if (state.embed.thumbnail.data) {
+        content.thumbnail_data = state.embed.thumbnail.data;
+        content.thumbnail_url = state.embed.thumbnail.data;
+      }
+
+      // Footer
+      if (state.embed.footer.text.trim() || state.embed.footer.iconData) {
+        content.footer = {};
+        if (state.embed.footer.text.trim()) content.footer.text = state.embed.footer.text.trim();
+        if (state.embed.footer.iconData) {
+          content.footer.icon_data = state.embed.footer.iconData;
+          content.footer.icon_url = state.embed.footer.iconData;
+        }
+      }
+
+      // Fields
+      const validFields = state.embed.fields
+        .filter((f) => f.name.trim() || f.value.trim())
+        .map((f) => ({ name: f.name.trim(), value: f.value.trim(), inline: !!f.inline }));
+      if (validFields.length) content.fields = validFields;
+
+      // Images
       if (state.images.length) {
         content.images = state.images.map((img) => ({
           filename: img.filename,
@@ -911,28 +1154,7 @@
         content.image_filename = state.images[0].filename;
       }
 
-      if (state.embed.thumbnail.enabled && state.embed.thumbnail.data) {
-        content.thumbnail_url = state.embed.thumbnail.data;
-      }
-
-      const authorName = el.embedAuthorName.value.trim();
-      if (state.embed.author.enabled && authorName) {
-        content.author = { name: authorName };
-        if (el.embedAuthorIcon.value.trim()) content.author.icon_url = el.embedAuthorIcon.value.trim();
-      }
-
-      const footerText = el.embedFooter.value.trim();
-      if (state.embed.footer.enabled && footerText) {
-        content.footer = { text: footerText };
-        if (el.embedFooterIcon.value.trim()) content.footer.icon_url = el.embedFooterIcon.value.trim();
-      }
-
-      const validFields = state.embed.fields
-        .filter((f) => f.name.trim() || f.value.trim())
-        .map((f) => ({ name: f.name.trim(), value: f.value.trim(), inline: !!f.inline }));
-      if (validFields.length) content.fields = validFields;
-
-      payload.content = JSON.parse(JSON.stringify(content));
+      payload.content = content;
     }
 
     return payload;
@@ -1004,8 +1226,7 @@
         const text = await file.text();
         const data = JSON.parse(text);
 
-        // 復元処理
-        // 1. チャンネル
+        // 1. チャンネル復元
         if (Array.isArray(data.channel_ids)) {
           state.channels.forEach((c) => {
             c.selected = data.channel_ids.includes(c.id);
@@ -1025,7 +1246,7 @@
           renderSelectedChips();
         }
 
-        // 2. タイミング
+        // 2. 送信タイミング復元
         if (data.immediate || data.datetime === 'now') {
           state.timingMode = 'immediate';
           el.timingImmediateLabel.querySelector('input').checked = true;
@@ -1044,7 +1265,7 @@
           }
         }
 
-        // 3. 繰り返し
+        // 3. 繰り返し復元
         if (data.recurrence) {
           state.recurrence.type = data.recurrence.type || 'none';
           el.recurrenceRadios.forEach((r) => {
@@ -1058,54 +1279,78 @@
           });
         }
 
-        // 4. メッセージ形式
+        // 4. メッセージ形式復元
         const mtype = data.type || 'embed';
         state.messageType = mtype;
         el.typeBtns.forEach((b) => b.classList.toggle('active', b.dataset.type === mtype));
-        el.pvPlain.style.display = mtype === 'plain' ? 'block' : 'none';
-        el.pvEmbed.style.display = mtype === 'embed' ? 'flex' : 'none';
-        el.embedQuickTools.style.display = mtype === 'embed' ? 'flex' : 'none';
+        el.plainEditorSection.style.display = mtype === 'plain' ? 'block' : 'none';
+        el.embedEditorSection.style.display = mtype === 'embed' ? 'block' : 'none';
 
         const content = data.content || {};
         if (mtype === 'plain') {
-          el.plainText.value = content.text || '';
-          el.plainCharCount.textContent = el.plainText.value.length;
+          state.plainText = content.text || '';
+          el.plainText.value = state.plainText;
+          el.plainCharCount.textContent = state.plainText.length;
         } else {
-          el.embedTitle.value = content.title || '';
-          el.embedDesc.value = content.description || '';
+          // Embed Title & Desc
+          state.embed.title = content.title || '';
+          state.embed.titleUrl = content.title_url || '';
+          state.embed.description = content.description || '';
+          el.embedTitle.value = state.embed.title;
+          el.embedTitleUrl.value = state.embed.titleUrl;
+          el.embedDesc.value = state.embed.description;
+
+          // Color
           if (content.color) {
             let hex = content.color;
             if (typeof hex === 'number') hex = '#' + hex.toString(16).padStart(6, '0');
             state.embed.color = hex;
             el.embedColor.value = hex;
-            if (el.embedColorPreview) el.embedColorPreview.style.background = hex;
-            if (el.embedColorPill) el.embedColorPill.style.background = hex;
+            el.embedColorHex.value = hex.toUpperCase();
           }
-          if (content.thumbnail_url) {
-            state.embed.thumbnail.enabled = true;
-            state.embed.thumbnail.data = content.thumbnail_url;
-            el.thumbBox.style.display = 'flex';
-            el.embedThumbnail.src = content.thumbnail_url;
-            el.embedThumbnail.style.display = 'block';
-            el.thumbPlaceholder.style.display = 'none';
-            el.btnToggleThumb.classList.add('active');
+
+          // Author
+          state.embed.author.name = (content.author && content.author.name) || '';
+          state.embed.author.url = (content.author && content.author.url) || '';
+          state.embed.author.iconData = (content.author && (content.author.icon_data || content.author.icon_url)) || '';
+          el.embedAuthorName.value = state.embed.author.name;
+          el.embedAuthorUrl.value = state.embed.author.url;
+          if (state.embed.author.iconData) {
+            el.authorIconPreviewImg.src = state.embed.author.iconData;
+            el.authorIconPreviewWrap.style.display = 'flex';
+            el.btnAuthorIconTrigger.style.display = 'none';
+          } else {
+            el.authorIconPreviewWrap.style.display = 'none';
+            el.btnAuthorIconTrigger.style.display = 'inline-flex';
           }
-          if (content.author && content.author.name) {
-            state.embed.author.enabled = true;
-            el.embedAuthorRow.style.display = 'flex';
-            el.embedAuthorName.value = content.author.name || '';
-            el.embedAuthorIcon.value = content.author.icon_url || '';
-            el.btnToggleAuthor.classList.add('active');
+
+          // Thumbnail
+          state.embed.thumbnail.data = content.thumbnail_data || content.thumbnail_url || '';
+          if (state.embed.thumbnail.data) {
+            el.thumbPreviewImg.src = state.embed.thumbnail.data;
+            el.thumbPreviewWrap.style.display = 'flex';
+            el.btnThumbTrigger.style.display = 'none';
+          } else {
+            el.thumbPreviewWrap.style.display = 'none';
+            el.btnThumbTrigger.style.display = 'inline-flex';
           }
-          if (content.footer && content.footer.text) {
-            state.embed.footer.enabled = true;
-            el.embedFooterRow.style.display = 'flex';
-            el.embedFooter.value = content.footer.text || '';
-            el.embedFooterIcon.value = content.footer.icon_url || '';
-            el.btnToggleFooter.classList.add('active');
+
+          // Footer
+          state.embed.footer.text = (content.footer && content.footer.text) || '';
+          state.embed.footer.iconData = (content.footer && (content.footer.icon_data || content.footer.icon_url)) || '';
+          el.embedFooterText.value = state.embed.footer.text;
+          if (state.embed.footer.iconData) {
+            el.footerIconPreviewImg.src = state.embed.footer.iconData;
+            el.footerIconPreviewWrap.style.display = 'flex';
+            el.btnFooterIconTrigger.style.display = 'none';
+          } else {
+            el.footerIconPreviewWrap.style.display = 'none';
+            el.btnFooterIconTrigger.style.display = 'inline-flex';
           }
+
+          // Fields
           state.embed.fields = Array.isArray(content.fields) ? content.fields : [];
-          renderFieldsList();
+          renderFieldsEditor();
         }
 
         // 複数画像復元
@@ -1123,8 +1368,9 @@
         }
         renderMediaGallery();
 
+        // ボタン復元
         state.buttons = Array.isArray(data.buttons) ? data.buttons : [];
-        renderButtonsList();
+        renderButtonsEditor();
 
         updateTimingDisplay();
         renderPreview();
