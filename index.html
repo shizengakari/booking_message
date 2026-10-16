@@ -317,176 +317,147 @@
       </section>
 
       <!-- =====================================================================
-           STEP 2: メッセージ作成 (Embed / 通常テキスト & プレビュー)
+           STEP 2: メッセージ作成 (プレビュー直接編集・複数画像アップロード対応)
            ===================================================================== -->
       <section id="step-pane-2" class="step-pane">
-        <div class="pane-content-split">
-          <!-- Left: Editor -->
-          <div class="editor-subcol">
-            <div class="section-card">
-              <div class="card-header-row">
-                <h2>メッセージ形式</h2>
-                <div class="type-segmented-control">
-                  <button type="button" class="type-segment-btn active" data-type="embed">Embed (埋め込み)</button>
-                  <button type="button" class="type-segment-btn" data-type="plain">通常テキスト</button>
-                </div>
-              </div>
-
-              <!-- Embed Form -->
-              <div id="form-embed">
-                <div class="field">
-                  <label for="embed-title">タイトル</label>
-                  <input type="text" id="embed-title" placeholder="タイトルを入力 (任意)" maxlength="256">
-                </div>
-                <div class="field mt-3">
-                  <label for="embed-desc">説明文 / 本文 (Markdown対応)</label>
-                  <textarea id="embed-desc" rows="6" placeholder="本文を入力してください..." maxlength="4096"></textarea>
-                </div>
-                <div class="row mt-3">
-                  <div class="field">
-                    <label for="embed-color">アクセントカラー</label>
-                    <div class="color-picker-row">
-                      <input type="color" id="embed-color" value="#5865F2">
-                      <span id="embed-color-text" class="color-code">#5865F2</span>
-                    </div>
-                  </div>
-                  <div class="field">
-                    <label for="embed-image">画像URL (任意)</label>
-                    <input type="url" id="embed-image" placeholder="https://example.com/image.png">
-                  </div>
-                </div>
-
-                <!-- Accordion: Optional Fields -->
-                <details class="modern-accordion mt-3">
-                  <summary>詳細設定 (作成者 / サムネイル / フッター / 項目)</summary>
-                  <div class="accordion-body">
-                    <div class="field">
-                      <label for="embed-author-name">作成者名</label>
-                      <input type="text" id="embed-author-name" placeholder="Author name" maxlength="256">
-                    </div>
-                    <div class="row mt-2">
-                      <div class="field">
-                        <label for="embed-author-icon">作成者アイコンURL</label>
-                        <input type="url" id="embed-author-icon" placeholder="https://...">
-                      </div>
-                      <div class="field">
-                        <label for="embed-thumbnail">サムネイル画像URL</label>
-                        <input type="url" id="embed-thumbnail" placeholder="https://...">
-                      </div>
-                    </div>
-                    <div class="row mt-2">
-                      <div class="field">
-                        <label for="embed-footer">フッターテキスト</label>
-                        <input type="text" id="embed-footer" placeholder="Footer text" maxlength="2048">
-                      </div>
-                      <div class="field">
-                        <label for="embed-footer-icon">フッターアイコンURL</label>
-                        <input type="url" id="embed-footer-icon" placeholder="https://...">
-                      </div>
-                    </div>
-
-                    <div class="mt-3">
-                      <div class="flex-between">
-                        <label>フィールド (項目)</label>
-                        <button type="button" id="btn-add-field" class="btn btn-sm btn-ghost">+ 項目追加</button>
-                      </div>
-                      <div id="fields-container" class="fields-list mt-2"></div>
-                    </div>
-                  </div>
-                </details>
-              </div>
-
-              <!-- Plain Text Form -->
-              <div id="form-plain" style="display: none;">
-                <div class="field">
-                  <div class="flex-between">
-                    <label for="plain-text">メッセージ本文</label>
-                    <span id="plain-char-count" class="char-count">0 / 2000</span>
-                  </div>
-                  <textarea id="plain-text" rows="8" placeholder="メッセージを入力してください..." maxlength="2000"></textarea>
-                </div>
-                <div class="field mt-3">
-                  <label for="plain-image">画像URL (任意)</label>
-                  <input type="url" id="plain-image" placeholder="https://example.com/image.png">
-                </div>
-              </div>
-
-              <!-- Buttons -->
-              <div class="buttons-section mt-4">
-                <div class="flex-between">
-                  <label>リンクボタン (最大5個)</label>
-                  <button type="button" id="btn-add-button" class="btn btn-sm btn-ghost">+ ボタン追加</button>
-                </div>
-                <div id="buttons-container" class="buttons-list mt-2"></div>
-              </div>
+        <div class="pane-content-editor-canvas">
+          
+          <!-- 上部コントロールバー -->
+          <div class="editor-top-bar">
+            <div class="type-segmented-control">
+              <button type="button" class="type-segment-btn active" data-type="embed">Embed (埋め込み)</button>
+              <button type="button" class="type-segment-btn" data-type="plain">通常テキスト</button>
             </div>
-
-            <div class="step-footer-nav mt-4">
-              <button type="button" id="btn-back-to-step-1" class="btn btn-secondary btn-lg">
-                <svg viewBox="0 0 20 20" width="16" height="16" fill="currentColor"><path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"/></svg>
-                戻る (基本設定)
-              </button>
-              <button type="button" id="btn-goto-step-3" class="btn btn-primary btn-xl">
-                次へ進む (保存・確認)
-                <svg viewBox="0 0 20 20" width="18" height="18" fill="currentColor"><path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+            <div class="editor-quick-tools">
+              <!-- Embed用クイックツール -->
+              <div id="embed-quick-tools" class="quick-tools-group">
+                <label class="tool-btn" title="アクセントカラーを変更">
+                  <input type="color" id="embed-color" value="#5865F2" style="position:absolute;opacity:0;pointer-events:none;">
+                  <span id="embed-color-preview" class="color-dot" style="background:#5865F2;"></span>
+                  <span>カラー</span>
+                </label>
+                <button type="button" id="btn-add-field" class="tool-btn">
+                  <svg viewBox="0 0 20 20" width="14" height="14" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/></svg>
+                  項目追加
+                </button>
+                <button type="button" id="btn-toggle-author" class="tool-btn">作成者</button>
+                <button type="button" id="btn-toggle-footer" class="tool-btn">フッター</button>
+                <button type="button" id="btn-toggle-thumb" class="tool-btn">サムネイル</button>
+              </div>
+              <button type="button" id="btn-add-button" class="tool-btn">
+                <svg viewBox="0 0 20 20" width="14" height="14" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/></svg>
+                ボタン追加
               </button>
             </div>
           </div>
 
-          <!-- Right: Preview -->
-          <div class="preview-subcol">
-            <div class="sticky-preview">
-              <div class="preview-header-bar">
-                <span>Discord プレビュー</span>
-                <span id="preview-target-badge" class="preview-target-badge">#一般</span>
-              </div>
-              <div class="discord-preview-card">
-                <div class="discord-msg-row">
-                  <div class="discord-bot-avatar">
-                    <svg viewBox="0 0 24 24" width="22" height="22" fill="#ffffff">
-                      <path d="M19.27 5.33C17.94 4.71 16.5 4.26 15 4a.09.09 0 0 0-.07.03c-.18.33-.39.76-.53 1.09a16.09 16.09 0 0 0-4.8 0c-.14-.34-.35-.76-.54-1.09-.01-.02-.04-.03-.07-.03-1.5.26-2.93.71-4.27 1.33-.01 0-.02.01-.03.02-2.72 4.07-3.47 8.03-3.1 11.95 0 .02.01.04.03.05 1.8 1.32 3.53 2.12 5.24 2.65.03.01.06 0 .07-.02.4-.55.76-1.13 1.07-1.74.02-.04 0-.08-.04-.09-.57-.22-1.11-.48-1.64-.78-.04-.02-.04-.08-.01-.11.11-.08.22-.17.33-.25.02-.02.05-.02.07-.01 3.44 1.57 7.15 1.57 10.55 0 .02-.01.05-.01.07.01.11.09.22.17.33.26.04.03.04.09-.01.11-.52.31-1.07.56-1.64.78-.04.01-.05.06-.04.09.32.61.68 1.19 1.07 1.74.02.02.04.03.07.02 1.72-.53 3.45-1.33 5.25-2.65.02-.01.03-.03.03-.05.44-4.53-.73-8.46-3.1-11.95-.01-.01-.02-.02-.04-.02zM8.52 14.91c-1.03 0-1.89-.95-1.89-2.12s.84-2.12 1.89-2.12c1.06 0 1.9.96 1.89 2.12 0 1.17-.84 2.12-1.89 2.12zm6.97 0c-1.03 0-1.89-.95-1.89-2.12s.84-2.12 1.89-2.12c1.06 0 1.9.96 1.89 2.12 0 1.17-.83 2.12-1.89 2.12z"/>
-                    </svg>
+          <!-- 隠しファイルインプット (PC・スマホからの画像アップロード用) -->
+          <input type="file" id="image-upload-input" multiple accept="image/*" style="display: none;">
+          <input type="file" id="thumb-upload-input" accept="image/*" style="display: none;">
+
+          <!-- メインキャンバス: Discord プレビュー＆インプレースエディタ -->
+          <div class="discord-canvas-wrapper mt-3">
+            <div class="canvas-header-info">
+              <span class="canvas-hint">プレビューをクリックして直接編集できます</span>
+              <span id="preview-target-badge" class="preview-target-badge">#一般</span>
+            </div>
+
+            <div class="discord-preview-card editor-mode">
+              <div class="discord-msg-row">
+                <div class="discord-bot-avatar">
+                  <svg viewBox="0 0 24 24" width="22" height="22" fill="#ffffff">
+                    <path d="M19.27 5.33C17.94 4.71 16.5 4.26 15 4a.09.09 0 0 0-.07.03c-.18.33-.39.76-.53 1.09a16.09 16.09 0 0 0-4.8 0c-.14-.34-.35-.76-.54-1.09-.01-.02-.04-.03-.07-.03-1.5.26-2.93.71-4.27 1.33-.01 0-.02.01-.03.02-2.72 4.07-3.47 8.03-3.1 11.95 0 .02.01.04.03.05 1.8 1.32 3.53 2.12 5.24 2.65.03.01.06 0 .07-.02.4-.55.76-1.13 1.07-1.74.02-.04 0-.08-.04-.09-.57-.22-1.11-.48-1.64-.78-.04-.02-.04-.08-.01-.11.11-.08.22-.17.33-.25.02-.02.05-.02.07-.01 3.44 1.57 7.15 1.57 10.55 0 .02-.01.05-.01.07.01.11.09.22.17.33.26.04.03.04.09-.01.11-.52.31-1.07.56-1.64.78-.04.01-.05.06-.04.09.32.61.68 1.19 1.07 1.74.02.02.04.03.07.02 1.72-.53 3.45-1.33 5.25-2.65.02-.01.03-.03.03-.05.44-4.53-.73-8.46-3.1-11.95-.01-.01-.02-.02-.04-.02zM8.52 14.91c-1.03 0-1.89-.95-1.89-2.12s.84-2.12 1.89-2.12c1.06 0 1.9.96 1.89 2.12 0 1.17-.84 2.12-1.89 2.12zm6.97 0c-1.03 0-1.89-.95-1.89-2.12s.84-2.12 1.89-2.12c1.06 0 1.9.96 1.89 2.12 0 1.17-.83 2.12-1.89 2.12z"/>
+                  </svg>
+                </div>
+                <div class="discord-msg-content">
+                  <div class="discord-meta">
+                    <span class="discord-bot-name">Bot</span>
+                    <span class="discord-app-badge">BOT</span>
+                    <span id="pv-time" class="discord-timestamp">今日 12:00</span>
                   </div>
-                  <div class="discord-msg-content">
-                    <div class="discord-meta">
-                      <span class="discord-bot-name">Bot</span>
-                      <span class="discord-app-badge">BOT</span>
-                      <span id="pv-time" class="discord-timestamp">今日 12:00</span>
-                    </div>
 
-                    <!-- Plain preview -->
-                    <div id="pv-plain" style="display: none;">
-                      <div id="pv-plain-text" class="pv-text"></div>
-                      <img id="pv-plain-image" class="pv-img" style="display: none;" alt="">
+                  <!-- 1. 通常テキスト (Plain) エディタ兼プレビュー -->
+                  <div id="pv-plain" style="display: none;">
+                    <div class="inline-edit-wrap">
+                      <textarea id="plain-text" class="inline-textarea plain-textarea" rows="3" placeholder="メッセージ本文を入力してください (Markdown対応)..." maxlength="2000"></textarea>
+                      <div class="inline-char-count"><span id="plain-char-count">0</span> / 2000</div>
                     </div>
+                  </div>
 
-                    <!-- Embed preview -->
-                    <div id="pv-embed" class="discord-embed-card">
-                      <div id="pv-embed-pill" class="embed-color-pill"></div>
-                      <div class="embed-body">
-                        <div id="pv-embed-author" class="pv-author-row" style="display: none;">
-                          <img id="pv-author-icon" class="pv-avatar-xs" src="" alt="">
-                          <span id="pv-author-name" class="pv-author-text"></span>
-                        </div>
-                        <div id="pv-embed-title" class="pv-title-text" style="display: none;"></div>
-                        <div id="pv-embed-desc" class="pv-desc-text">メッセージを入力するとプレビューされます</div>
-                        <div id="pv-embed-fields" class="pv-fields-grid"></div>
-                        <img id="pv-embed-image" class="pv-img" style="display: none;" alt="">
-                        <div id="pv-embed-footer" class="pv-footer-row" style="display: none;">
-                          <img id="pv-footer-icon" class="pv-avatar-xxs" src="" alt="">
-                          <span id="pv-footer-text"></span>
-                        </div>
+                  <!-- 2. Embed エディタ兼プレビュー -->
+                  <div id="pv-embed" class="discord-embed-card editable-embed">
+                    <!-- 左端カラーバー (クリックで色変更) -->
+                    <div id="pv-embed-pill" class="embed-color-pill clickable-pill" title="クリックして色を変更"></div>
+                    
+                    <div class="embed-body">
+                      <!-- 作成者 (Author) -->
+                      <div id="pv-embed-author" class="pv-author-row author-edit-row" style="display: none;">
+                        <input type="text" id="embed-author-name" class="inline-input author-input" placeholder="作成者名" maxlength="256">
+                        <input type="url" id="embed-author-icon" class="inline-input author-icon-input" placeholder="アイコンURL (任意)">
+                        <button type="button" id="btn-remove-author" class="btn-item-del" title="作成者を削除">&times;</button>
                       </div>
-                      <img id="pv-embed-thumbnail" class="pv-thumb-img" style="display: none;" alt="">
+
+                      <!-- タイトル (Title) -->
+                      <input type="text" id="embed-title" class="inline-input title-input" placeholder="タイトルを入力 (任意)" maxlength="256">
+
+                      <!-- 説明文 / 本文 (Description) -->
+                      <textarea id="embed-desc" class="inline-textarea desc-textarea" rows="4" placeholder="説明文・本文を入力してください (Markdown対応)..." maxlength="4096"></textarea>
+
+                      <!-- フィールド一覧 (Fields) -->
+                      <div id="pv-embed-fields" class="pv-fields-grid editable-fields-grid"></div>
+
+                      <!-- フッター (Footer) -->
+                      <div id="pv-embed-footer" class="pv-footer-row footer-edit-row" style="display: none;">
+                        <input type="text" id="embed-footer" class="inline-input footer-input" placeholder="フッターテキスト" maxlength="2048">
+                        <input type="url" id="embed-footer-icon" class="inline-input footer-icon-input" placeholder="フッターアイコンURL (任意)">
+                        <button type="button" id="btn-remove-footer" class="btn-item-del" title="フッターを削除">&times;</button>
+                      </div>
                     </div>
 
-                    <!-- Buttons preview -->
-                    <div id="pv-buttons" class="pv-buttons-wrap" style="display: none;"></div>
+                    <!-- サムネイル枠 (Thumbnail) -->
+                    <div id="pv-thumb-box" class="thumb-edit-box" style="display: none;">
+                      <img id="pv-embed-thumbnail" class="pv-thumb-img" src="" alt="" style="display: none;">
+                      <div id="thumb-placeholder" class="thumb-placeholder">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                        <span>画像</span>
+                      </div>
+                      <button type="button" id="btn-remove-thumb" class="btn-thumb-del" title="サムネイルを削除">&times;</button>
+                    </div>
                   </div>
+
+                  <!-- 3. 画像ギャラリー (複数枚アップロード・プレビュー・削除対応) -->
+                  <div class="media-gallery-section mt-3">
+                    <div id="media-gallery-grid" class="media-gallery-grid"></div>
+                    <div id="media-upload-dropzone" class="media-dropzone" title="クリックまたはドラッグ＆ドロップで画像を追加">
+                      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                        <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                        <polyline points="21 15 16 10 5 21"></polyline>
+                      </svg>
+                      <span class="dropzone-text">画像を追加 (PC・スマホから選択 / ドラッグ＆ドロップ / 最大10枚)</span>
+                    </div>
+                  </div>
+
+                  <!-- 4. リンクボタン一覧 (Buttons) -->
+                  <div id="pv-buttons" class="pv-buttons-wrap editable-buttons-wrap mt-3" style="display: none;"></div>
+
                 </div>
               </div>
             </div>
           </div>
+
+          <!-- ナビゲーションフッター -->
+          <div class="step-footer-nav mt-4">
+            <button type="button" id="btn-back-to-step-1" class="btn btn-secondary btn-lg">
+              <svg viewBox="0 0 20 20" width="16" height="16" fill="currentColor"><path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"/></svg>
+              戻る (基本設定)
+            </button>
+            <button type="button" id="btn-goto-step-3" class="btn btn-primary btn-xl">
+              次へ進む (保存・確認)
+              <svg viewBox="0 0 20 20" width="18" height="18" fill="currentColor"><path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+            </button>
+          </div>
+
         </div>
       </section>
 

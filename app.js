@@ -18,19 +18,18 @@
       days: []      // 0: Mon ... 6: Sun
     },
     messageType: 'embed', // 'embed' | 'plain'
+    images: [], // [{ filename: string, data: string }]
     embed: {
       title: '',
       description: '',
       color: '#5865F2',
-      image_url: '',
-      thumbnail_url: '',
-      author: { name: '', icon_url: '' },
-      footer: { text: '', icon_url: '' },
+      author: { name: '', icon_url: '', enabled: false },
+      footer: { text: '', icon_url: '', enabled: false },
+      thumbnail: { data: '', enabled: false },
       fields: []
     },
     plain: {
-      text: '',
-      image_url: ''
+      text: ''
     },
     buttons: []
   };
@@ -91,51 +90,55 @@
     // Step 1 Navigation
     btnGotoStep2: $('btn-goto-step-2'),
 
-    // Step 2: Editor
+    // Step 2: Editor (In-place & Media)
     typeBtns: $$('.type-segment-btn'),
-    formEmbed: $('form-embed'),
-    formPlain: $('form-plain'),
-    embedTitle: $('embed-title'),
-    embedDesc: $('embed-desc'),
+    embedQuickTools: $('embed-quick-tools'),
     embedColor: $('embed-color'),
-    embedColorText: $('embed-color-text'),
-    embedImage: $('embed-image'),
-    embedThumbnail: $('embed-thumbnail'),
-    embedAuthorName: $('embed-author-name'),
-    embedAuthorIcon: $('embed-author-icon'),
-    embedFooter: $('embed-footer'),
-    embedFooterIcon: $('embed-footer-icon'),
-    fieldsContainer: $('fields-container'),
+    embedColorPreview: $('embed-color-preview'),
+    embedColorPill: $('pv-embed-pill'),
     btnAddField: $('btn-add-field'),
-    plainText: $('plain-text'),
-    plainCharCount: $('plain-char-count'),
-    plainImage: $('plain-image'),
-    buttonsContainer: $('buttons-container'),
+    btnToggleAuthor: $('btn-toggle-author'),
+    btnToggleFooter: $('btn-toggle-footer'),
+    btnToggleThumb: $('btn-toggle-thumb'),
     btnAddButton: $('btn-add-button'),
 
-    btnBackToStep1: $('btn-back-to-step-1'),
-    btnGotoStep3: $('btn-goto-step-3'),
+    imageUploadInput: $('image-upload-input'),
+    thumbUploadInput: $('thumb-upload-input'),
 
-    // Step 2: Preview
     pvTargetBadge: $('preview-target-badge'),
     pvTime: $('pv-time'),
     pvPlain: $('pv-plain'),
-    pvPlainText: $('pv-plain-text'),
-    pvPlainImage: $('pv-plain-image'),
+    plainText: $('plain-text'),
+    plainCharCount: $('plain-char-count'),
+
     pvEmbed: $('pv-embed'),
-    pvEmbedPill: $('pv-embed-pill'),
-    pvEmbedAuthor: $('pv-embed-author'),
-    pvAuthorIcon: $('pv-author-icon'),
-    pvAuthorName: $('pv-author-name'),
-    pvEmbedTitle: $('pv-embed-title'),
-    pvEmbedDesc: $('pv-embed-desc'),
-    pvEmbedFields: $('pv-embed-fields'),
-    pvEmbedImage: $('pv-embed-image'),
-    pvEmbedFooter: $('pv-embed-footer'),
-    pvFooterIcon: $('pv-footer-icon'),
-    pvFooterText: $('pv-footer-text'),
-    pvEmbedThumbnail: $('pv-embed-thumbnail'),
-    pvButtons: $('pv-buttons'),
+    embedAuthorRow: $('pv-embed-author'),
+    embedAuthorName: $('embed-author-name'),
+    embedAuthorIcon: $('embed-author-icon'),
+    btnRemoveAuthor: $('btn-remove-author'),
+
+    embedTitle: $('embed-title'),
+    embedDesc: $('embed-desc'),
+
+    fieldsContainer: $('pv-embed-fields'),
+
+    embedFooterRow: $('pv-embed-footer'),
+    embedFooter: $('embed-footer'),
+    embedFooterIcon: $('embed-footer-icon'),
+    btnRemoveFooter: $('btn-remove-footer'),
+
+    thumbBox: $('pv-thumb-box'),
+    embedThumbnail: $('pv-embed-thumbnail'),
+    thumbPlaceholder: $('thumb-placeholder'),
+    btnRemoveThumb: $('btn-remove-thumb'),
+
+    mediaGalleryGrid: $('media-gallery-grid'),
+    mediaDropzone: $('media-upload-dropzone'),
+
+    buttonsContainer: $('pv-buttons'),
+
+    btnBackToStep1: $('btn-back-to-step-1'),
+    btnGotoStep3: $('btn-goto-step-3'),
 
     // Step 3: Final
     finalSummaryChannels: $('final-summary-channels'),
@@ -528,7 +531,7 @@
     });
   }
 
-  // --- Step 2 Events & Preview ---
+  // --- Step 2 Events & In-Place Preview/Editor ---
   function attachStep2Events() {
     el.stepTabs.forEach((tab) => {
       tab.addEventListener('click', () => {
@@ -551,132 +554,280 @@
     el.btnGotoStep3.addEventListener('click', () => {
       // メッセージのバリデーション
       if (state.messageType === 'plain') {
-        if (!el.plainText.value.trim() && !el.plainImage.value.trim()) {
-          alert('メッセージ本文または画像URLを入力してください。');
+        const text = el.plainText.value.trim();
+        if (!text && !state.images.length) {
+          alert('メッセージ本文を入力するか、画像をアップロードしてください。');
           return;
         }
       } else {
         const title = el.embedTitle.value.trim();
         const desc = el.embedDesc.value.trim();
-        const img = el.embedImage.value.trim();
-        if (!title && !desc && !img && !state.embed.fields.length) {
-          alert('Embedのタイトルまたは本文を入力してください。');
+        if (!title && !desc && !state.images.length && !state.embed.fields.length) {
+          alert('Embedのタイトル、本文、または画像を設定してください。');
           return;
         }
       }
       goToStep(3);
     });
 
-    // Type switch
+    // Type switch (Embed vs Plain)
     el.typeBtns.forEach((btn) => {
       btn.addEventListener('click', () => {
         el.typeBtns.forEach((b) => b.classList.remove('active'));
         btn.classList.add('active');
         state.messageType = btn.dataset.type;
-        el.formEmbed.style.display = state.messageType === 'embed' ? 'block' : 'none';
-        el.formPlain.style.display = state.messageType === 'plain' ? 'block' : 'none';
+        el.pvPlain.style.display = state.messageType === 'plain' ? 'block' : 'none';
+        el.pvEmbed.style.display = state.messageType === 'embed' ? 'flex' : 'none';
+        el.embedQuickTools.style.display = state.messageType === 'embed' ? 'flex' : 'none';
         renderPreview();
       });
     });
 
-    // Embed inputs
-    el.embedTitle.addEventListener('input', renderPreview);
-    el.embedDesc.addEventListener('input', renderPreview);
+    // Color picker
     el.embedColor.addEventListener('input', (e) => {
-      el.embedColorText.textContent = e.target.value.toUpperCase();
-      renderPreview();
+      const col = e.target.value;
+      state.embed.color = col;
+      if (el.embedColorPreview) el.embedColorPreview.style.background = col;
+      if (el.embedColorPill) el.embedColorPill.style.background = col;
     });
-    el.embedImage.addEventListener('input', renderPreview);
-    el.embedThumbnail.addEventListener('input', renderPreview);
-    el.embedAuthorName.addEventListener('input', renderPreview);
-    el.embedAuthorIcon.addEventListener('input', renderPreview);
-    el.embedFooter.addEventListener('input', renderPreview);
-    el.embedFooterIcon.addEventListener('input', renderPreview);
+    if (el.embedColorPill) {
+      el.embedColorPill.addEventListener('click', () => el.embedColor.click());
+    }
 
-    // Plain inputs
-    el.plainText.addEventListener('input', () => {
-      el.plainCharCount.textContent = `${el.plainText.value.length} / 2000`;
-      renderPreview();
+    // Toggle Author
+    el.btnToggleAuthor.addEventListener('click', () => {
+      state.embed.author.enabled = !state.embed.author.enabled;
+      el.embedAuthorRow.style.display = state.embed.author.enabled ? 'flex' : 'none';
+      el.btnToggleAuthor.classList.toggle('active', state.embed.author.enabled);
+      if (state.embed.author.enabled) el.embedAuthorName.focus();
     });
-    el.plainImage.addEventListener('input', renderPreview);
+    el.btnRemoveAuthor.addEventListener('click', () => {
+      state.embed.author.enabled = false;
+      el.embedAuthorName.value = '';
+      el.embedAuthorIcon.value = '';
+      el.embedAuthorRow.style.display = 'none';
+      el.btnToggleAuthor.classList.remove('active');
+    });
+
+    // Toggle Footer
+    el.btnToggleFooter.addEventListener('click', () => {
+      state.embed.footer.enabled = !state.embed.footer.enabled;
+      el.embedFooterRow.style.display = state.embed.footer.enabled ? 'flex' : 'none';
+      el.btnToggleFooter.classList.toggle('active', state.embed.footer.enabled);
+      if (state.embed.footer.enabled) el.embedFooter.focus();
+    });
+    el.btnRemoveFooter.addEventListener('click', () => {
+      state.embed.footer.enabled = false;
+      el.embedFooter.value = '';
+      el.embedFooterIcon.value = '';
+      el.embedFooterRow.style.display = 'none';
+      el.btnToggleFooter.classList.remove('active');
+    });
+
+    // Toggle Thumbnail
+    el.btnToggleThumb.addEventListener('click', () => {
+      state.embed.thumbnail.enabled = !state.embed.thumbnail.enabled;
+      el.thumbBox.style.display = state.embed.thumbnail.enabled ? 'flex' : 'none';
+      el.btnToggleThumb.classList.toggle('active', state.embed.thumbnail.enabled);
+      if (state.embed.thumbnail.enabled && !state.embed.thumbnail.data) {
+        el.thumbUploadInput.click();
+      }
+    });
+    el.thumbBox.addEventListener('click', () => el.thumbUploadInput.click());
+    el.thumbUploadInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file && file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          state.embed.thumbnail.data = ev.target.result;
+          el.embedThumbnail.src = ev.target.result;
+          el.embedThumbnail.style.display = 'block';
+          el.thumbPlaceholder.style.display = 'none';
+        };
+        reader.readAsDataURL(file);
+      }
+      e.target.value = '';
+    });
+    el.btnRemoveThumb.addEventListener('click', (e) => {
+      e.stopPropagation();
+      state.embed.thumbnail.data = '';
+      state.embed.thumbnail.enabled = false;
+      el.embedThumbnail.src = '';
+      el.embedThumbnail.style.display = 'none';
+      el.thumbPlaceholder.style.display = 'flex';
+      el.thumbBox.style.display = 'none';
+      el.btnToggleThumb.classList.remove('active');
+    });
+
+    // Plain text input
+    el.plainText.addEventListener('input', () => {
+      el.plainCharCount.textContent = el.plainText.value.length;
+    });
 
     // Fields
     el.btnAddField.addEventListener('click', () => {
       if (state.embed.fields.length >= 25) {
-        alert('フィールドは最大25個までです');
+        alert('フィールドは最大25個までです。');
         return;
       }
       state.embed.fields.push({ name: '', value: '', inline: false });
       renderFieldsList();
-      renderPreview();
     });
 
     // Buttons
     el.btnAddButton.addEventListener('click', () => {
       if (state.buttons.length >= 5) {
-        alert('ボタンは最大5個までです');
+        alert('ボタンは最大5個までです。');
         return;
       }
       state.buttons.push({ label: '', url: '' });
       renderButtonsList();
-      renderPreview();
+    });
+
+    // Multiple Media Upload (PC & Mobile & Drag and drop)
+    el.mediaDropzone.addEventListener('click', () => el.imageUploadInput.click());
+    el.imageUploadInput.addEventListener('change', (e) => {
+      if (e.target.files && e.target.files.length) {
+        handleImageFiles(e.target.files);
+        e.target.value = '';
+      }
+    });
+
+    el.mediaDropzone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      el.mediaDropzone.classList.add('dragover');
+    });
+    el.mediaDropzone.addEventListener('dragleave', () => {
+      el.mediaDropzone.classList.remove('dragover');
+    });
+    el.mediaDropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      el.mediaDropzone.classList.remove('dragover');
+      if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) {
+        handleImageFiles(e.dataTransfer.files);
+      }
+    });
+  }
+
+  function handleImageFiles(fileList) {
+    const remaining = 10 - state.images.length;
+    if (remaining <= 0) {
+      alert('画像は最大10枚まで追加できます。');
+      return;
+    }
+    const files = Array.from(fileList).filter((f) => f.type.startsWith('image/')).slice(0, remaining);
+    if (!files.length) return;
+
+    let loadedCount = 0;
+    files.forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        state.images.push({
+          filename: file.name,
+          data: e.target.result
+        });
+        loadedCount++;
+        if (loadedCount === files.length) {
+          renderMediaGallery();
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function renderMediaGallery() {
+    el.mediaGalleryGrid.innerHTML = '';
+    if (!state.images.length) {
+      el.mediaGalleryGrid.style.display = 'none';
+      return;
+    }
+    el.mediaGalleryGrid.style.display = 'grid';
+
+    state.images.forEach((img, idx) => {
+      const card = document.createElement('div');
+      card.className = 'media-thumb-card';
+      card.innerHTML = `
+        <img src="${img.data}" class="media-thumb-img" alt="${escapeHtml(img.filename)}">
+        <button type="button" class="media-thumb-remove" title="画像を削除" aria-label="削除">${CLOSE_ICON}</button>
+      `;
+
+      card.querySelector('.media-thumb-remove').addEventListener('click', (e) => {
+        e.stopPropagation();
+        state.images.splice(idx, 1);
+        renderMediaGallery();
+      });
+
+      el.mediaGalleryGrid.appendChild(card);
     });
   }
 
   function renderFieldsList() {
     el.fieldsContainer.innerHTML = '';
+    if (!state.embed.fields.length) {
+      el.fieldsContainer.style.display = 'none';
+      return;
+    }
+    el.fieldsContainer.style.display = 'flex';
+
     state.embed.fields.forEach((f, idx) => {
-      const item = document.createElement('div');
-      item.className = 'field-item';
-      item.innerHTML = `
-        <input type="text" placeholder="項目名" value="${escapeHtml(f.name)}" style="flex:1;">
-        <input type="text" placeholder="値" value="${escapeHtml(f.value)}" style="flex:2;">
-        <label style="font-size:0.75rem;display:flex;align-items:center;gap:3px;cursor:pointer;">
-          <input type="checkbox" ${f.inline ? 'checked' : ''}>横並び
-        </label>
-        <button type="button" class="btn btn-xs btn-ghost" style="color:var(--danger);padding:3px 6px;" title="削除" aria-label="削除">${CLOSE_ICON}</button>
+      const card = document.createElement('div');
+      card.className = 'editable-field-card';
+      card.innerHTML = `
+        <div class="field-header-row">
+          <input type="text" class="inline-input field-name-input" placeholder="項目名" value="${escapeHtml(f.name)}" style="flex:1;">
+          <label class="field-inline-toggle">
+            <input type="checkbox" ${f.inline ? 'checked' : ''}>横並び
+          </label>
+          <button type="button" class="btn-item-del" title="項目を削除">&times;</button>
+        </div>
+        <input type="text" class="inline-input field-val-input" placeholder="値" value="${escapeHtml(f.value)}">
       `;
 
-      const [nameInput, valInput] = item.querySelectorAll('input[type="text"]');
-      const inlineCheck = item.querySelector('input[type="checkbox"]');
-      const delBtn = item.querySelector('button');
+      const nameInput = card.querySelector('.field-name-input');
+      const valInput = card.querySelector('.field-val-input');
+      const inlineCheck = card.querySelector('input[type="checkbox"]');
+      const delBtn = card.querySelector('.btn-item-del');
 
-      nameInput.addEventListener('input', () => { f.name = nameInput.value; renderPreview(); });
-      valInput.addEventListener('input', () => { f.value = valInput.value; renderPreview(); });
-      inlineCheck.addEventListener('change', () => { f.inline = inlineCheck.checked; renderPreview(); });
+      nameInput.addEventListener('input', () => { f.name = nameInput.value; });
+      valInput.addEventListener('input', () => { f.value = valInput.value; });
+      inlineCheck.addEventListener('change', () => { f.inline = inlineCheck.checked; });
       delBtn.addEventListener('click', () => {
         state.embed.fields.splice(idx, 1);
         renderFieldsList();
-        renderPreview();
       });
 
-      el.fieldsContainer.appendChild(item);
+      el.fieldsContainer.appendChild(card);
     });
   }
 
   function renderButtonsList() {
     el.buttonsContainer.innerHTML = '';
+    if (!state.buttons.length) {
+      el.buttonsContainer.style.display = 'none';
+      return;
+    }
+    el.buttonsContainer.style.display = 'flex';
+
     state.buttons.forEach((b, idx) => {
-      const item = document.createElement('div');
-      item.className = 'button-item';
-      item.innerHTML = `
-        <input type="text" placeholder="ボタン名" value="${escapeHtml(b.label)}" style="flex:1;">
-        <input type="url" placeholder="https://..." value="${escapeHtml(b.url)}" style="flex:2;">
-        <button type="button" class="btn btn-xs btn-ghost" style="color:var(--danger);padding:3px 6px;" title="削除" aria-label="削除">${CLOSE_ICON}</button>
+      const card = document.createElement('div');
+      card.className = 'editable-btn-card';
+      card.innerHTML = `
+        <input type="text" class="inline-input editable-btn-label" placeholder="ボタン名" value="${escapeHtml(b.label)}">
+        <input type="url" class="inline-input editable-btn-url" placeholder="https://..." value="${escapeHtml(b.url)}">
+        <button type="button" class="btn-item-del" title="ボタンを削除">&times;</button>
       `;
 
-      const [labelInput, urlInput] = item.querySelectorAll('input');
-      const delBtn = item.querySelector('button');
+      const [labelInput, urlInput] = card.querySelectorAll('input');
+      const delBtn = card.querySelector('.btn-item-del');
 
-      labelInput.addEventListener('input', () => { b.label = labelInput.value; renderPreview(); });
-      urlInput.addEventListener('input', () => { b.url = urlInput.value; renderPreview(); });
+      labelInput.addEventListener('input', () => { b.label = labelInput.value; });
+      urlInput.addEventListener('input', () => { b.url = urlInput.value; });
       delBtn.addEventListener('click', () => {
         state.buttons.splice(idx, 1);
         renderButtonsList();
-        renderPreview();
       });
 
-      el.buttonsContainer.appendChild(item);
+      el.buttonsContainer.appendChild(card);
     });
   }
 
@@ -684,115 +835,15 @@
     if (state.messageType === 'plain') {
       el.pvPlain.style.display = 'block';
       el.pvEmbed.style.display = 'none';
-
-      const text = el.plainText.value.trim();
-      el.pvPlainText.textContent = text || 'メッセージを入力するとプレビューされます';
-
-      const img = el.plainImage.value.trim();
-      if (img) {
-        el.pvPlainImage.src = img;
-        el.pvPlainImage.style.display = 'block';
-      } else {
-        el.pvPlainImage.style.display = 'none';
-      }
     } else {
       el.pvPlain.style.display = 'none';
       el.pvEmbed.style.display = 'flex';
-
-      const color = el.embedColor.value;
-      el.pvEmbedPill.style.background = color;
-
-      // Author
-      const authorName = el.embedAuthorName.value.trim();
-      const authorIcon = el.embedAuthorIcon.value.trim();
-      if (authorName) {
-        el.pvEmbedAuthor.style.display = 'flex';
-        el.pvAuthorName.textContent = authorName;
-        if (authorIcon) {
-          el.pvAuthorIcon.src = authorIcon;
-          el.pvAuthorIcon.style.display = 'block';
-        } else {
-          el.pvAuthorIcon.style.display = 'none';
-        }
-      } else {
-        el.pvEmbedAuthor.style.display = 'none';
-      }
-
-      // Title
-      const title = el.embedTitle.value.trim();
-      if (title) {
-        el.pvEmbedTitle.style.display = 'block';
-        el.pvEmbedTitle.textContent = title;
-      } else {
-        el.pvEmbedTitle.style.display = 'none';
-      }
-
-      // Desc
-      const desc = el.embedDesc.value.trim();
-      el.pvEmbedDesc.textContent = desc || (title ? '' : 'メッセージを入力するとプレビューされます');
-
-      // Fields
-      el.pvEmbedFields.innerHTML = '';
-      state.embed.fields.forEach((f) => {
-        if (!f.name && !f.value) return;
-        const fi = document.createElement('div');
-        fi.className = `pv-field-item ${f.inline ? '' : 'full-width'}`;
-        fi.innerHTML = `
-          <div style="font-size:0.8rem;font-weight:700;color:var(--text-primary);">${escapeHtml(f.name || '\u200b')}</div>
-          <div style="font-size:0.8rem;color:var(--text-secondary);white-space:pre-wrap;">${escapeHtml(f.value || '\u200b')}</div>
-        `;
-        el.pvEmbedFields.appendChild(fi);
-      });
-
-      // Image
-      const img = el.embedImage.value.trim();
-      if (img) {
-        el.pvEmbedImage.src = img;
-        el.pvEmbedImage.style.display = 'block';
-      } else {
-        el.pvEmbedImage.style.display = 'none';
-      }
-
-      // Thumbnail
-      const thumb = el.embedThumbnail.value.trim();
-      if (thumb) {
-        el.pvEmbedThumbnail.src = thumb;
-        el.pvEmbedThumbnail.style.display = 'block';
-      } else {
-        el.pvEmbedThumbnail.style.display = 'none';
-      }
-
-      // Footer
-      const footText = el.embedFooter.value.trim();
-      const footIcon = el.embedFooterIcon.value.trim();
-      if (footText) {
-        el.pvEmbedFooter.style.display = 'flex';
-        el.pvFooterText.textContent = footText;
-        if (footIcon) {
-          el.pvFooterIcon.src = footIcon;
-          el.pvFooterIcon.style.display = 'block';
-        } else {
-          el.pvFooterIcon.style.display = 'none';
-        }
-      } else {
-        el.pvEmbedFooter.style.display = 'none';
-      }
+      if (el.embedColorPill) el.embedColorPill.style.background = state.embed.color || '#5865F2';
+      if (el.embedColorPreview) el.embedColorPreview.style.background = state.embed.color || '#5865F2';
     }
-
-    // Buttons
-    el.pvButtons.innerHTML = '';
-    const validBtns = state.buttons.filter((b) => b.label.trim() && b.url.trim());
-    if (validBtns.length) {
-      el.pvButtons.style.display = 'flex';
-      validBtns.forEach((b) => {
-        const btnEl = document.createElement('span');
-        btnEl.className = 'btn btn-xs btn-secondary';
-        btnEl.textContent = b.label;
-        el.pvButtons.appendChild(btnEl);
-      });
-    } else {
-      el.pvButtons.style.display = 'none';
-    }
+    renderMediaGallery();
+    renderFieldsList();
+    renderButtonsList();
   }
 
   // --- Step 3: Final JSON Build & Download ---
@@ -835,25 +886,43 @@
       payload.content = {
         text: el.plainText.value.trim()
       };
-      if (el.plainImage.value.trim()) payload.content.image_url = el.plainImage.value.trim();
+      // Images
+      if (state.images.length) {
+        payload.content.images = state.images.map((img) => ({
+          filename: img.filename,
+          data: img.data
+        }));
+        payload.content.image_data = state.images[0].data;
+        payload.content.image_filename = state.images[0].filename;
+      }
     } else {
       const content = {
         title: el.embedTitle.value.trim() || undefined,
         description: el.embedDesc.value.trim() || undefined,
-        color: el.embedColor.value || '#5865F2'
+        color: state.embed.color || '#5865F2'
       };
 
-      if (el.embedImage.value.trim()) content.image_url = el.embedImage.value.trim();
-      if (el.embedThumbnail.value.trim()) content.thumbnail_url = el.embedThumbnail.value.trim();
+      if (state.images.length) {
+        content.images = state.images.map((img) => ({
+          filename: img.filename,
+          data: img.data
+        }));
+        content.image_data = state.images[0].data;
+        content.image_filename = state.images[0].filename;
+      }
+
+      if (state.embed.thumbnail.enabled && state.embed.thumbnail.data) {
+        content.thumbnail_url = state.embed.thumbnail.data;
+      }
 
       const authorName = el.embedAuthorName.value.trim();
-      if (authorName) {
+      if (state.embed.author.enabled && authorName) {
         content.author = { name: authorName };
         if (el.embedAuthorIcon.value.trim()) content.author.icon_url = el.embedAuthorIcon.value.trim();
       }
 
       const footerText = el.embedFooter.value.trim();
-      if (footerText) {
+      if (state.embed.footer.enabled && footerText) {
         content.footer = { text: footerText };
         if (el.embedFooterIcon.value.trim()) content.footer.icon_url = el.embedFooterIcon.value.trim();
       }
@@ -941,7 +1010,6 @@
           state.channels.forEach((c) => {
             c.selected = data.channel_ids.includes(c.id);
           });
-          // 見つからなかったチャンネルを手動追加
           data.channel_ids.forEach((cid) => {
             if (!state.channels.some((c) => c.id === String(cid))) {
               state.channels.push({
@@ -994,35 +1062,66 @@
         const mtype = data.type || 'embed';
         state.messageType = mtype;
         el.typeBtns.forEach((b) => b.classList.toggle('active', b.dataset.type === mtype));
-        el.formEmbed.style.display = mtype === 'embed' ? 'block' : 'none';
-        el.formPlain.style.display = mtype === 'plain' ? 'block' : 'none';
+        el.pvPlain.style.display = mtype === 'plain' ? 'block' : 'none';
+        el.pvEmbed.style.display = mtype === 'embed' ? 'flex' : 'none';
+        el.embedQuickTools.style.display = mtype === 'embed' ? 'flex' : 'none';
 
         const content = data.content || {};
         if (mtype === 'plain') {
           el.plainText.value = content.text || '';
-          el.plainImage.value = content.image_url || '';
+          el.plainCharCount.textContent = el.plainText.value.length;
         } else {
           el.embedTitle.value = content.title || '';
           el.embedDesc.value = content.description || '';
           if (content.color) {
             let hex = content.color;
             if (typeof hex === 'number') hex = '#' + hex.toString(16).padStart(6, '0');
+            state.embed.color = hex;
             el.embedColor.value = hex;
-            el.embedColorText.textContent = hex.toUpperCase();
+            if (el.embedColorPreview) el.embedColorPreview.style.background = hex;
+            if (el.embedColorPill) el.embedColorPill.style.background = hex;
           }
-          el.embedImage.value = content.image_url || '';
-          el.embedThumbnail.value = content.thumbnail_url || '';
-          if (content.author) {
+          if (content.thumbnail_url) {
+            state.embed.thumbnail.enabled = true;
+            state.embed.thumbnail.data = content.thumbnail_url;
+            el.thumbBox.style.display = 'flex';
+            el.embedThumbnail.src = content.thumbnail_url;
+            el.embedThumbnail.style.display = 'block';
+            el.thumbPlaceholder.style.display = 'none';
+            el.btnToggleThumb.classList.add('active');
+          }
+          if (content.author && content.author.name) {
+            state.embed.author.enabled = true;
+            el.embedAuthorRow.style.display = 'flex';
             el.embedAuthorName.value = content.author.name || '';
             el.embedAuthorIcon.value = content.author.icon_url || '';
+            el.btnToggleAuthor.classList.add('active');
           }
-          if (content.footer) {
+          if (content.footer && content.footer.text) {
+            state.embed.footer.enabled = true;
+            el.embedFooterRow.style.display = 'flex';
             el.embedFooter.value = content.footer.text || '';
             el.embedFooterIcon.value = content.footer.icon_url || '';
+            el.btnToggleFooter.classList.add('active');
           }
           state.embed.fields = Array.isArray(content.fields) ? content.fields : [];
           renderFieldsList();
         }
+
+        // 複数画像復元
+        state.images = [];
+        if (Array.isArray(content.images)) {
+          state.images = content.images.map((img, i) => ({
+            filename: img.filename || `image_${i + 1}.png`,
+            data: img.data || img.image_data || ''
+          })).filter((img) => img.data);
+        } else if (content.image_data) {
+          state.images.push({
+            filename: content.image_filename || 'image.png',
+            data: content.image_data
+          });
+        }
+        renderMediaGallery();
 
         state.buttons = Array.isArray(data.buttons) ? data.buttons : [];
         renderButtonsList();
@@ -1045,7 +1144,7 @@
     });
   }
 
-  function escapeHtml(str) {
+    function escapeHtml(str) {
     if (!str) return '';
     return String(str)
       .replace(/&/g, '&amp;')
