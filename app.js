@@ -1899,6 +1899,7 @@
 
           el.btnSubmitApiFinal.textContent = '予約登録完了';
           el.btnSubmitApiFinal.className = 'btn btn-success btn-hero';
+          isCompleted = true;
 
           if (el.apiSubmitStatus) {
             el.apiSubmitStatus.textContent = '予約が正常に完了しました。Discord側のメッセージが自動更新され、DMへ確定通知を送信しました。この画面は閉じて構いません。';
@@ -2110,6 +2111,7 @@
 
     el.btnReset.addEventListener('click', () => {
       if (!confirm('入力内容をすべてリセットしますか？')) return;
+      isCompleted = true;
       location.reload();
     });
   }
@@ -2241,6 +2243,31 @@
     }
   }
 
+  let isCompleted = false;
+
+  function hasUnsavedChanges() {
+    if (isCompleted) return false;
+    if (!checkHasBotSession()) return false;
+    // メッセージが入力されている、またはステップ2以降に進んでいる場合
+    if (state.plainText && state.plainText.trim().length > 0) return true;
+    if (state.embed.title && state.embed.title.trim().length > 0) return true;
+    if (state.embed.description && state.embed.description.trim().length > 0) return true;
+    if (state.embed.fields && state.embed.fields.length > 0) return true;
+    if (state.images && state.images.length > 0) return true;
+    if (state.buttons && state.buttons.length > 0) return true;
+    if (state.currentStep > 1) return true;
+    return false;
+  }
+
+  function attachUnloadProtection() {
+    window.addEventListener('beforeunload', (e) => {
+      if (hasUnsavedChanges()) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    });
+  }
+
   // --- Initializer (Robust & Defensive) ---
   function init() {
     try {
@@ -2281,6 +2308,7 @@
     try { attachStep2Events(); } catch (e) { console.error('attachStep2Events error:', e); }
     try { attachStep3Events(); } catch (e) { console.error('attachStep3Events error:', e); }
     try { attachImportEvents(); } catch (e) { console.error('attachImportEvents error:', e); }
+    try { attachUnloadProtection(); } catch (e) { console.error('attachUnloadProtection error:', e); }
 
     try {
       goToStep(1);

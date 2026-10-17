@@ -1116,6 +1116,9 @@ textarea:focus {
   margin-top: 6px;
   display: flex;
   gap: 10px;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .embed-color-pill {
@@ -1134,6 +1137,8 @@ textarea:focus {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .pv-author-row {
@@ -1167,9 +1172,10 @@ textarea:focus {
 
 .pv-fields-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
   gap: 8px;
   margin-top: 4px;
+  min-width: 0;
 }
 
 .pv-img {
@@ -2276,6 +2282,9 @@ textarea:focus {
   display: flex;
   gap: 12px;
   margin-top: 6px;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .embed-color-pill {
@@ -2295,6 +2304,8 @@ textarea:focus {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .pv-author-row {
@@ -2347,9 +2358,10 @@ textarea:focus {
 
 .pv-fields-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
   gap: 8px;
   margin-top: 4px;
+  min-width: 0;
 }
 
 .pv-field-col {
@@ -3486,6 +3498,89 @@ body.light-theme .pv-discord-btn:hover {
   }
   .dt-trigger-btn {
     display: none;
+  }
+
+  /* スマホ横幅でのDiscordプレビュー・Embed崩れ防止 */
+  .discord-message-box {
+    padding: 12px 10px;
+  }
+  .discord-msg-row {
+    gap: 8px;
+  }
+  .discord-bot-avatar {
+    width: 32px;
+    height: 32px;
+  }
+  .discord-bot-avatar svg {
+    width: 18px;
+    height: 18px;
+  }
+  .discord-embed-card {
+    padding: 10px 10px 10px 12px;
+    gap: 8px;
+  }
+  .pv-fields-grid {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+  .pv-thumb-img {
+    max-width: 52px;
+    max-height: 52px;
+    margin-left: 8px;
+  }
+  .pv-media-gallery {
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  }
+  .pv-media-gallery img {
+    height: 75px;
+  }
+  .pv-buttons-row {
+    gap: 6px;
+  }
+  .pv-discord-btn {
+    padding: 5px 10px;
+    font-size: 0.78rem;
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+/* 横幅の非常に狭いスマホ (380px以下 / iPhone SE等) での確実な安定化 */
+@media (max-width: 380px) {
+  .app-container {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+  .discord-message-box {
+    padding: 10px 6px;
+  }
+  .discord-bot-avatar {
+    width: 28px;
+    height: 28px;
+  }
+  .discord-embed-card {
+    padding: 8px 8px 8px 10px;
+  }
+  .pv-thumb-img {
+    max-width: 40px;
+    max-height: 40px;
+    margin-left: 6px;
+  }
+  .pv-author-row {
+    gap: 6px;
+    font-size: 0.76rem;
+  }
+  .pv-title-link {
+    font-size: 0.92rem;
+  }
+  .pv-description {
+    font-size: 0.82rem;
+  }
+  .pv-footer-row {
+    font-size: 0.7rem;
+    flex-wrap: wrap;
   }
 }
 
