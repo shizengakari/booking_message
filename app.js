@@ -1863,21 +1863,15 @@
           return;
         }
 
-        // activeApiUrl の解決: URLクエリ -> localStorage -> ユーザー入力
+        // activeApiUrl の解決: Bot発行のURLクエリのみを参照 (Web側手入力・シークレット保持の完全撤廃)
         if (!activeApiUrl) {
-          const savedApi = localStorage.getItem('booking_api_url');
-          if (savedApi) {
-            activeApiUrl = savedApi.replace(/\/+$/, '');
-          } else {
-            const inputUrl = prompt('BotのAPIサーバーURLを入力してください (例: https://your-domain.ts.net または http://localhost:8000):');
-            if (inputUrl && inputUrl.trim()) {
-              activeApiUrl = inputUrl.trim().replace(/\/+$/, '');
-              localStorage.setItem('booking_api_url', activeApiUrl);
-            } else {
-              alert('APIサーバーのURLが未設定のため、Botへの登録を中断しました。');
-              return;
-            }
+          if (el.apiSubmitStatus) {
+            el.apiSubmitStatus.textContent = 'APIサーバーの接続先情報がURLに含まれていません。Discordの /booking_message コマンドから発行されたURLを開いてください。';
+            el.apiSubmitStatus.style.display = 'block';
+            el.apiSubmitStatus.className = 'api-submit-status error mt-2';
           }
+          alert('APIサーバー情報が見つかりません。Discordの /booking_message コマンドから発行されたリンクをご利用ください。');
+          return;
         }
 
         try {
@@ -2149,14 +2143,10 @@
 
     if (apiParam) {
       activeApiUrl = apiParam.replace(/\/+$/, '');
-      try { localStorage.setItem('booking_api_url', activeApiUrl); } catch (e) {}
     } else if (isLocalhost) {
       activeApiUrl = window.location.origin;
     } else {
-      const savedApi = localStorage.getItem('booking_api_url');
-      if (savedApi) {
-        activeApiUrl = savedApi.replace(/\/+$/, '');
-      }
+      activeApiUrl = '';
     }
 
     // API URL が取得できない場合、fetchはスキップしURL展開済みのチャンネル情報で動作
