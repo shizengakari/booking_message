@@ -1875,8 +1875,8 @@
         }
 
         // Mixed Content 事前チェック (HTTPS環境から非暗号化HTTPへの接続遮断を防止)
-        if (window.location.protocol === 'https:' && activeApiUrl.startsWith('http://') && !activeApiUrl.includes('localhost') && !activeApiUrl.includes('127.0.0.1')) {
-          const mixedMsg = 'HTTPSのWebサイトから非暗号化HTTPサーバーへの通信はブラウザのセキュリティ仕様により遮断されます。Botの .env にて FASTAPI_PUBLIC_URL にHTTPSの公開URL (Tailscale Funnel等) を設定してください。';
+        if (window.location.protocol === 'https:' && activeApiUrl.startsWith('http://')) {
+          const mixedMsg = 'HTTPSのWebサイトから非暗号化HTTPサーバーへの通信はブラウザのセキュリティ仕様 (Mixed Content) により遮断されます。Botの .env にて FASTAPI_PUBLIC_URL にHTTPSの公開URL (Tailscale Funnel等) を設定してください。';
           if (el.apiSubmitStatus) {
             el.apiSubmitStatus.textContent = mixedMsg;
             el.apiSubmitStatus.style.display = 'block';
@@ -2171,7 +2171,7 @@
       activeApiUrl = '';
     }
 
-    // API URL が取得できない場合、fetchはスキップしURL展開済みのチャンネル情報で動作
+    // API URL が取得できない場合、またはMixed Contentになる場合
     if (!activeApiUrl) {
       const banner = $('discord-sync-banner');
       if (banner && state.channels.length > 0) {
@@ -2179,6 +2179,20 @@
         const textEl = banner.querySelector('.sync-banner-text');
         if (textEl) {
           textEl.textContent = `チャンネル連携完了: 全 ${state.channels.length} チャンネルを読み込みました。`;
+        }
+      }
+      return false;
+    }
+
+    // Mixed Content の事前チェック (HTTPS環境下でAPIが非暗号化HTTPの場合)
+    if (window.location.protocol === 'https:' && activeApiUrl.startsWith('http://')) {
+      console.warn('Mixed Content detected: HTTPS web page cannot fetch from HTTP API:', activeApiUrl);
+      const banner = $('discord-sync-banner');
+      if (banner) {
+        banner.style.display = 'block';
+        const textEl = banner.querySelector('.sync-banner-text');
+        if (textEl) {
+          textEl.textContent = '警告: ブラウザのMixed Content制約によりHTTP通信が遮断されます。Botの .env の FASTAPI_PUBLIC_URL にHTTPSの公開URL (Tailscale Funnel等) を設定してください。';
         }
       }
       return false;
