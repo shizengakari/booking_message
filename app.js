@@ -12,7 +12,7 @@
 
   // --- State ---
   const HASH_ICON = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="4" y1="9" x2="20" y2="9"></line><line x1="4" y1="15" x2="20" y2="15"></line><line x1="10" y1="3" x2="8" y2="21"></line><line x1="16" y1="3" x2="14" y2="21"></line></svg>`;
-  const VOICE_ICON = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>`;
+  const VOICE_ICON = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>`;
   const CHEVRON_DOWN_ICON = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>`;
   const CLOSE_ICON = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`;
   const SUN_ICON = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>`;
@@ -71,8 +71,6 @@
     btnSelectAllChannels: $('btn-select-all-channels'),
     btnClearAllChannels: $('btn-clear-all-channels'),
     btnToggleAllCats: $('btn-toggle-all-cats'),
-    btnImportChannelsTrigger: $('btn-import-channels-trigger'),
-    inputChannelsFile: $('input-channels-file'),
     btnToggleCustomChannel: $('btn-toggle-custom-channel'),
     customChannelWrap: $('custom-channel-wrap'),
     inputCustomChannelId: $('input-custom-channel-id'),
@@ -1014,18 +1012,6 @@
       });
     }
 
-    // channels.json ファイル読込トリガー
-    if (el.btnImportChannelsTrigger && el.inputChannelsFile) {
-      el.btnImportChannelsTrigger.addEventListener('click', () => {
-        el.inputChannelsFile.click();
-      });
-      el.inputChannelsFile.addEventListener('change', (e) => {
-        if (e.target.files && e.target.files[0]) {
-          loadChannelsFromFile(e.target.files[0]);
-          e.target.value = '';
-        }
-      });
-    }
 
     // チャンネルID手動追加フォームの開閉 & 適用
     if (el.btnToggleCustomChannel && el.customChannelWrap) {
@@ -1616,8 +1602,8 @@
           el.pvAuthorIcon.style.display = 'none';
         }
         el.pvAuthorLink.textContent = state.embed.author.name || '作成者';
-        if (state.embed.author.url.trim()) {
-          el.pvAuthorLink.href = state.embed.author.url;
+        if (isSafeUrl(state.embed.author.url.trim())) {
+          el.pvAuthorLink.href = state.embed.author.url.trim();
         } else {
           el.pvAuthorLink.removeAttribute('href');
         }
@@ -1629,8 +1615,8 @@
       if (state.embed.title.trim()) {
         el.pvEmbedTitleWrap.style.display = 'block';
         el.pvEmbedTitle.textContent = state.embed.title;
-        if (state.embed.titleUrl.trim()) {
-          el.pvEmbedTitle.href = state.embed.titleUrl;
+        if (isSafeUrl(state.embed.titleUrl.trim())) {
+          el.pvEmbedTitle.href = state.embed.titleUrl.trim();
           el.pvEmbedTitle.className = 'pv-title-link';
         } else {
           el.pvEmbedTitle.removeAttribute('href');
@@ -1714,14 +1700,14 @@
     }
 
     // Buttons (Embed & Plain共通)
-    const validBtns = state.buttons.filter((b) => b.label.trim() && b.url.trim());
+    const validBtns = state.buttons.filter((b) => b.label.trim() && isSafeUrl(b.url.trim()));
     el.pvButtonsWrap.innerHTML = '';
     if (validBtns.length) {
       el.pvButtonsWrap.style.display = 'flex';
       validBtns.forEach((b) => {
         const btn = document.createElement('a');
         btn.className = 'pv-discord-btn';
-        btn.href = b.url;
+        btn.href = b.url.trim();
         btn.target = '_blank';
         btn.rel = 'noopener';
         btn.textContent = b.label;
@@ -1738,8 +1724,11 @@
     const channelIds = selectedChannels.map((c) => c.id);
 
     const isImmediate = state.timingMode === 'immediate';
-    let datetimeStr = 'now';
-    if (!isImmediate) {
+    let datetimeStr = '';
+    if (isImmediate) {
+      const now = new Date();
+      datetimeStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}+09:00`;
+    } else {
       const dateVal = el.inputDate.value;
       const timeVal = el.inputTime.value;
       datetimeStr = `${dateVal}T${timeVal}:00+09:00`;
@@ -2142,6 +2131,12 @@
       .replace(/'/g, '&#39;');
   }
 
+  function isSafeUrl(url) {
+    if (!url || typeof url !== 'string') return false;
+    const trimmed = url.trim().toLowerCase();
+    return trimmed.startsWith('http://') || trimmed.startsWith('https://');
+  }
+
   function checkHasBotSession() {
     const params = new URLSearchParams(window.location.search);
     return Boolean(
@@ -2187,24 +2182,7 @@
     // Mixed Content の事前チェック (HTTPS環境下でAPIが非暗号化HTTPの場合)
     if (window.location.protocol === 'https:' && activeApiUrl.startsWith('http://')) {
       console.warn('Mixed Content detected: HTTPS web page cannot fetch from HTTP API:', activeApiUrl);
-      const banner = $('discord-sync-banner');
-      if (banner) {
-        banner.style.display = 'block';
-        const textEl = banner.querySelector('.sync-banner-text');
-        if (textEl) {
-          textEl.textContent = '警告: ブラウザのMixed Content制約によりHTTP通信が遮断されます。Botの .env の FASTAPI_PUBLIC_URL にHTTPSの公開URL (Tailscale Funnel等) を設定してください。';
-        }
-      }
       return false;
-    }
-
-    const banner = $('discord-sync-banner');
-    if (banner) {
-      banner.style.display = 'block';
-      const textEl = banner.querySelector('.sync-banner-text');
-      if (textEl) {
-        textEl.textContent = 'FastAPI連携中: サーバーのチャンネル一覧を同期しています...';
-      }
     }
 
     try {
@@ -2229,23 +2207,10 @@
 
         renderChannelsList();
         renderSelectedChips();
-
-        if (banner) {
-          const textEl = banner.querySelector('.sync-banner-text');
-          if (textEl) {
-            textEl.textContent = `FastAPI連携中: 全 ${state.channels.length} チャンネルを完全同期しました。Web上で決定するとBotへ自動登録されます。`;
-          }
-        }
         return true;
       }
     } catch (e) {
       console.warn('FastAPI session fetch failed, falling back to URL params:', e);
-      if (banner) {
-        const textEl = banner.querySelector('.sync-banner-text');
-        if (textEl) {
-          textEl.textContent = 'チャンネル連携完了: URLパラメータからチャンネルを読み込みました。';
-        }
-      }
     }
     return false;
   }

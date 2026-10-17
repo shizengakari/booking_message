@@ -2388,13 +2388,34 @@ textarea:focus {
   word-break: break-word;
 }
 
+.embed-main-grid {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+  min-width: 0;
+}
+
+.embed-text-col {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
 .pv-thumb-img {
+  width: 80px;
+  height: 80px;
   max-width: 80px;
   max-height: 80px;
   object-fit: contain;
   border-radius: 4px;
-  float: right;
-  margin-left: 12px;
+  flex-shrink: 0;
+  margin-left: auto;
+  align-self: flex-start;
 }
 
 .pv-main-embed-img {
@@ -2941,9 +2962,35 @@ textarea:focus {
 
 :root.light-theme .dynamic-island,
 body.light-theme .dynamic-island {
-  background: rgba(255, 255, 255, 0.94);
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+}
+
+:root.light-theme .island-steps .step-tab {
+  color: #475569;
+}
+
+:root.light-theme .island-steps .step-tab:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+:root.light-theme .island-steps .step-tab .step-badge {
+  background: #e2e8f0;
+  color: #1e293b;
+  font-weight: 700;
+}
+
+:root.light-theme .island-steps .step-tab.active {
+  background: var(--brand);
+  color: #ffffff;
+}
+
+:root.light-theme .island-steps .step-tab.active .step-badge {
+  background: #ffffff;
+  color: var(--brand);
+  font-weight: 700;
 }
 
 .island-steps {
@@ -2991,8 +3038,9 @@ body.light-theme .dynamic-island {
   height: 16px;
   border-radius: 50%;
   font-size: 0.65rem;
-  font-weight: 600;
-  background: rgba(255, 255, 255, 0.18);
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.16);
+  color: #f1f5f9;
   flex-shrink: 0;
 }
 
