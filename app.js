@@ -2194,6 +2194,8 @@
 
         // Step 3 の送信ボタン表示切替
         if (el.apiSubmitArea) el.apiSubmitArea.style.display = 'block';
+        const guideCard = document.querySelector('.discord-guide-card');
+        if (guideCard) guideCard.style.display = 'none';
         if (el.btnDownloadJsonFinal) {
           el.btnDownloadJsonFinal.className = 'btn btn-secondary';
           el.btnDownloadJsonFinal.innerHTML = `
