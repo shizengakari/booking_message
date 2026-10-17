@@ -65,8 +65,14 @@
       3: $('step-pane-3')
     },
 
-    // Step 1: Channels (Discord-driven)
-    currentChannelDisplay: $('current-channel-display'),
+    // Step 1: Channels (Multi-select & up to 500 channels)
+    channelSearch: $('channel-search-input'),
+    btnClearSearch: $('btn-clear-search'),
+    btnSelectAllChannels: $('btn-select-all-channels'),
+    btnClearAllChannels: $('btn-clear-all-channels'),
+    btnToggleAllCats: $('btn-toggle-all-cats'),
+    btnImportChannelsTrigger: $('btn-import-channels-trigger'),
+    inputChannelsFile: $('input-channels-file'),
     btnToggleCustomChannel: $('btn-toggle-custom-channel'),
     customChannelWrap: $('custom-channel-wrap'),
     inputCustomChannelId: $('input-custom-channel-id'),
@@ -281,7 +287,7 @@
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  // --- Channels Management (Step 1) ---
+  // --- Channels Management (Step 1: Multi-select & 500 Channels Support) ---
   function parseChannelsFromUrl() {
     const params = new URLSearchParams(window.location.search);
     const chsToken = params.get('chs');
@@ -292,18 +298,32 @@
 
     if (chsToken && typeof window.pako !== 'undefined') {
       try {
-        // Base64 URL-safe decode (replace - with +, _ with /, pad with =)
         let b64 = chsToken.trim().replace(/-/g, '+').replace(/_/g, '/');
         while (b64.length % 4) b64 += '=';
         const binStr = atob(b64);
         const bytes = new Uint8Array(binStr.length);
         for (let i = 0; i < binStr.length; i++) bytes[i] = binStr.charCodeAt(i);
         const jsonStr = window.pako.inflate(bytes, { to: 'string' });
-        const list = JSON.parse(jsonStr);
-        if (Array.isArray(list)) {
-          loadedList = list.map((c) => {
+        const parsed = JSON.parse(jsonStr);
+
+        if (parsed && parsed.v === 2 && parsed.b && Array.isArray(parsed.c) && Array.isArray(parsed.l)) {
+          // Version 2: 高圧縮デルタ + カテゴリ辞書形式 (400件以上のチャンネルに対応)
+          const baseId = BigInt(parsed.b);
+          const cats = parsed.c;
+          loadedList = parsed.l.map(([delta, name, isVoice, catIdx]) => {
+            const cid = (baseId + BigInt(delta)).toString();
+            return {
+              id: cid,
+              name: String(name || 'channel'),
+              category: String(cats[catIdx] || '未分類'),
+              type: isVoice === 1 ? 'voice' : 'text',
+              selected: defaultCid ? cid === String(defaultCid) : false
+            };
+          });
+        } else if (Array.isArray(parsed)) {
+          // Version 1 / レガシー配列形式
+          loadedList = parsed.map((c) => {
             if (Array.isArray(c)) {
-              // 超軽量タプル配列: [id, name, type_code (0: text, 1: voice), category]
               return {
                 id: String(c[0]),
                 name: String(c[1] || 'channel'),
@@ -347,37 +367,75 @@
       });
     }
 
-    // もしどのチャンネルも選択されていなければ先頭を選択
+    // 先頭チャンネルまたは該当チャンネルを選択状態にする
     if (!loadedList.some((c) => c.selected)) {
       loadedList[0].selected = true;
     }
 
     state.channels = loadedList;
-    if (el.currentChannelDisplay) {
-      const selected = loadedList.find((c) => c.selected) || loadedList[0];
-      el.currentChannelDisplay.textContent = selected ? '#' + selected.name : '#test';
-    }
     renderChannelsList();
     renderSelectedChips();
   }
 
-  function renderChannelsList() {
-    el.channelContainer.innerHTML = '';
-    const query = el.channelSearch.value.trim().toLowerCase();
+  // Botが送信した channels.json を直接読み込んで全500件完全同期
+  function loadChannelsFromFile(file) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const text = e.target.result;
+        const list = JSON.parse(text);
+        if (Array.isArray(list) && list.length) {
+          const currentSelected = new Set(state.channels.filter((c) => c.selected).map((c) => c.id));
+          state.channels = list.map((c) => {
+            const cid = String(c.id || c[0] || '');
+            const cname = String(c.name || c[1] || 'channel');
+            const ctype = (c.type === 'voice' || c[2] === 1) ? 'voice' : 'text';
+            const ccat = String(c.category || c[3] || '未分類');
+            return {
+              id: cid,
+              name: cname,
+              category: ccat,
+              type: ctype,
+              selected: currentSelected.has(cid)
+            };
+          }).filter((c) => c.id);
 
-    // フィルタリング
+          if (!state.channels.some((c) => c.selected) && state.channels.length > 0) {
+            state.channels[0].selected = true;
+          }
+
+          renderChannelsList();
+          renderSelectedChips();
+          showToast(`全 ${state.channels.length} チャンネルを完全同期しました`);
+        } else {
+          alert('有効なチャンネル一覧データが見つかりませんでした。');
+        }
+      } catch (err) {
+        alert('channels.json の読み込みに失敗しました: ' + err.message);
+      }
+    };
+    reader.readAsText(file, 'utf-8');
+  }
+
+  function renderChannelsList() {
+    if (!el.channelContainer) return;
+    el.channelContainer.innerHTML = '';
+    const query = (el.channelSearch && el.channelSearch.value) ? el.channelSearch.value.trim().toLowerCase() : '';
+
+    // 絞り込みフィルタ
     const filtered = state.channels.filter((c) => {
       if (!query) return true;
       return c.name.toLowerCase().includes(query) || (c.category && c.category.toLowerCase().includes(query));
     });
 
     if (!filtered.length) {
-      el.channelEmptyHint.style.display = 'block';
+      if (el.channelEmptyHint) el.channelEmptyHint.style.display = 'block';
       return;
     }
-    el.channelEmptyHint.style.display = 'none';
+    if (el.channelEmptyHint) el.channelEmptyHint.style.display = 'none';
 
-    // Discordの実際の並び順のままカテゴリを抽出 (出現順を保持)
+    // Discordの実際の並び順のままカテゴリを抽出 (出現順を完全保持)
     const catOrder = [];
     const catMap = new Map();
     filtered.forEach((c) => {
@@ -412,7 +470,7 @@
         </div>
       `;
 
-      // 開閉クリック
+      // アコーディオン開閉
       grpHeader.addEventListener('click', () => {
         if (state.collapsedCategories.has(catName)) {
           state.collapsedCategories.delete(catName);
@@ -422,7 +480,7 @@
         renderChannelsList();
       });
 
-      // カテゴリ全選択・解除ボタン
+      // カテゴリ内全選択・全解除
       grpHeader.querySelectorAll('.cat-select-btn').forEach((btn) => {
         btn.addEventListener('click', (e) => {
           e.stopPropagation();
@@ -437,7 +495,7 @@
 
       el.channelContainer.appendChild(grpHeader);
 
-      // チャンネルリストコンテナ
+      // チャンネル行コンテナ
       const itemsContainer = document.createElement('div');
       itemsContainer.className = `channel-group-items ${isCollapsed ? 'collapsed' : ''}`;
 
@@ -455,7 +513,7 @@
           c.selected = check.checked;
           item.classList.toggle('selected', c.selected);
           renderSelectedChips();
-          // カテゴリのバッジ更新のために再描画
+          // カテゴリのバッジ更新
           const currentHeader = itemsContainer.previousElementSibling;
           if (currentHeader) {
             const newSelCount = channelsInCat.filter((x) => x.selected).length;
@@ -485,36 +543,75 @@
 
   function renderSelectedChips() {
     const selected = state.channels.filter((c) => c.selected);
-    el.selectedChannelCount.textContent = selected.length;
+    if (el.selectedChannelCount) el.selectedChannelCount.textContent = selected.length;
+    if (!el.selectedChips) return;
     el.selectedChips.innerHTML = '';
 
     if (!selected.length) {
-      el.selectedChips.innerHTML = '<span style="font-size:0.8rem;color:var(--text-tertiary);line-height:28px;">チャンネルが選択されていません</span>';
+      el.selectedChips.innerHTML = '<span style="font-size:0.78rem;color:var(--text-tertiary);line-height:26px;">チャンネルが選択されていません (最低1つ選択してください)</span>';
       if (el.pvTargetBadge) el.pvTargetBadge.textContent = 'チャンネル未選択';
       return;
     }
 
     if (el.pvTargetBadge) {
-      el.pvTargetBadge.textContent = selected.length === 1 ? `# ${selected[0].name}` : `${selected.length} チャンネル`;
+      el.pvTargetBadge.textContent = selected.length === 1 ? `#${selected[0].name}` : `${selected.length} チャンネル`;
     }
 
-    selected.forEach((c) => {
-      const chip = document.createElement('div');
-      chip.className = 'channel-chip';
-      chip.innerHTML = `
-        <span class="chip-icon">${c.type === 'voice' ? VOICE_ICON : HASH_ICON}</span>
-        <span class="chip-name">${escapeHtml(c.name)}</span>
-        <button type="button" class="channel-chip-remove" title="選択解除" aria-label="削除">${CLOSE_ICON}</button>
-      `;
+    // 10件以下の場合は全チップを表示
+    if (selected.length <= 10) {
+      selected.forEach((c) => {
+        const chip = document.createElement('div');
+        chip.className = 'channel-chip';
+        chip.innerHTML = `
+          <span class="chip-icon">${c.type === 'voice' ? VOICE_ICON : HASH_ICON}</span>
+          <span class="chip-name">${escapeHtml(c.name)}</span>
+          <button type="button" class="channel-chip-remove" title="選択解除" aria-label="削除">${CLOSE_ICON}</button>
+        `;
 
-      chip.querySelector('.channel-chip-remove').addEventListener('click', () => {
-        c.selected = false;
+        chip.querySelector('.channel-chip-remove').addEventListener('click', () => {
+          c.selected = false;
+          renderChannelsList();
+          renderSelectedChips();
+        });
+
+        el.selectedChips.appendChild(chip);
+      });
+    } else {
+      // 10件超（最大500件）の場合は最初の8件 + 残り件数バッジでスッキリ表示
+      selected.slice(0, 8).forEach((c) => {
+        const chip = document.createElement('div');
+        chip.className = 'channel-chip';
+        chip.innerHTML = `
+          <span class="chip-icon">${c.type === 'voice' ? VOICE_ICON : HASH_ICON}</span>
+          <span class="chip-name">${escapeHtml(c.name)}</span>
+          <button type="button" class="channel-chip-remove" title="選択解除" aria-label="削除">${CLOSE_ICON}</button>
+        `;
+
+        chip.querySelector('.channel-chip-remove').addEventListener('click', () => {
+          c.selected = false;
+          renderChannelsList();
+          renderSelectedChips();
+        });
+
+        el.selectedChips.appendChild(chip);
+      });
+
+      const morePill = document.createElement('span');
+      morePill.className = 'channel-chip-overflow';
+      morePill.textContent = `...ほか ${selected.length - 8} チャンネル`;
+      el.selectedChips.appendChild(morePill);
+
+      const clearAllBtn = document.createElement('button');
+      clearAllBtn.type = 'button';
+      clearAllBtn.className = 'btn btn-ghost btn-xs';
+      clearAllBtn.textContent = '全解除';
+      clearAllBtn.addEventListener('click', () => {
+        state.channels.forEach((c) => { c.selected = false; });
         renderChannelsList();
         renderSelectedChips();
       });
-
-      el.selectedChips.appendChild(chip);
-    });
+      el.selectedChips.appendChild(clearAllBtn);
+    }
   }
 
   // --- Step 1 Timing & Full Datetime Modal Logic ---
@@ -814,7 +911,68 @@
 
   // --- Step 1 Events Setup ---
   function attachStep1Events() {
-    // 別チャンネルID指定フォームの開閉 & 適用
+    // チャンネル検索
+    if (el.channelSearch) {
+      el.channelSearch.addEventListener('input', () => {
+        if (el.btnClearSearch) {
+          el.btnClearSearch.style.display = el.channelSearch.value ? 'block' : 'none';
+        }
+        renderChannelsList();
+      });
+    }
+
+    if (el.btnClearSearch) {
+      el.btnClearSearch.addEventListener('click', () => {
+        if (el.channelSearch) el.channelSearch.value = '';
+        el.btnClearSearch.style.display = 'none';
+        renderChannelsList();
+      });
+    }
+
+    // チャンネル一括操作 (全選択 / 選択解除 / 全カテゴリ開閉)
+    if (el.btnSelectAllChannels) {
+      el.btnSelectAllChannels.addEventListener('click', () => {
+        state.channels.forEach((c) => { c.selected = true; });
+        renderChannelsList();
+        renderSelectedChips();
+        showToast(`全 ${state.channels.length} チャンネルを選択しました`);
+      });
+    }
+
+    if (el.btnClearAllChannels) {
+      el.btnClearAllChannels.addEventListener('click', () => {
+        state.channels.forEach((c) => { c.selected = false; });
+        renderChannelsList();
+        renderSelectedChips();
+      });
+    }
+
+    if (el.btnToggleAllCats) {
+      el.btnToggleAllCats.addEventListener('click', () => {
+        state.allCategoriesCollapsed = !state.allCategoriesCollapsed;
+        if (state.allCategoriesCollapsed) {
+          state.channels.forEach((c) => state.collapsedCategories.add(c.category || '未分類'));
+        } else {
+          state.collapsedCategories.clear();
+        }
+        renderChannelsList();
+      });
+    }
+
+    // channels.json ファイル読込トリガー
+    if (el.btnImportChannelsTrigger && el.inputChannelsFile) {
+      el.btnImportChannelsTrigger.addEventListener('click', () => {
+        el.inputChannelsFile.click();
+      });
+      el.inputChannelsFile.addEventListener('change', (e) => {
+        if (e.target.files && e.target.files[0]) {
+          loadChannelsFromFile(e.target.files[0]);
+          e.target.value = '';
+        }
+      });
+    }
+
+    // チャンネルID手動追加フォームの開閉 & 適用
     if (el.btnToggleCustomChannel && el.customChannelWrap) {
       el.btnToggleCustomChannel.addEventListener('click', () => {
         const isHidden = el.customChannelWrap.style.display === 'none';
@@ -835,31 +993,40 @@
     function handleApplyCustomChannel() {
       if (!el.inputCustomChannelId) return;
       const rawVal = el.inputCustomChannelId.value.trim();
-      const cid = rawVal.replace(/[^0-9]/g, '');
-      if (!cid || cid.length < 15 || cid.length > 22) {
+      if (!rawVal) return;
+
+      // カンマ・空白・改行区切りで複数IDを一括追加可能
+      const ids = rawVal.split(/[\s,、\n]+/)
+        .map((s) => s.replace(/[^0-9]/g, ''))
+        .filter((s) => s.length >= 15 && s.length <= 22);
+
+      if (!ids.length) {
         alert('有効なDiscordチャンネルID (17〜20桁程度の数字) を入力してください。');
         return;
       }
 
-      state.channels = [{
-        id: cid,
-        name: 'ch-' + cid.slice(-4),
-        category: '指定チャンネル',
-        type: 'text',
-        selected: true
-      }];
-
-      if (el.currentChannelDisplay) {
-        el.currentChannelDisplay.textContent = '#ch-' + cid.slice(-4);
-      }
-      if (el.pvTargetBadge) {
-        el.pvTargetBadge.textContent = '#ch-' + cid.slice(-4);
-      }
+      let addedCount = 0;
+      ids.forEach((cid) => {
+        const existing = state.channels.find((c) => c.id === cid);
+        if (existing) {
+          existing.selected = true;
+        } else {
+          state.channels.unshift({
+            id: cid,
+            name: 'ch-' + cid.slice(-4),
+            category: '手動指定',
+            type: 'text',
+            selected: true
+          });
+          addedCount++;
+        }
+      });
 
       el.inputCustomChannelId.value = '';
       el.customChannelWrap.style.display = 'none';
+      renderChannelsList();
       renderSelectedChips();
-      showToast('送信先チャンネル ID: ' + cid + ' を設定しました');
+      showToast(`${ids.length} 件のチャンネルを追加・選択しました`);
     }
 
     if (el.btnApplyCustomChannel) {

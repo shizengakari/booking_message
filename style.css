@@ -289,7 +289,7 @@ body {
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
-  padding: 22px;
+  padding: 16px 18px;
   box-shadow: var(--shadow-sm);
   transition: var(--transition);
 }
@@ -298,31 +298,33 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
 }
 
 .card-title-group {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 .card-step-num {
-  width: 24px;
-  height: 24px;
-  border-radius: 6px;
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
   background: var(--brand-subtle);
   color: var(--brand);
-  font-size: 0.82rem;
-  font-weight: 700;
+  font-size: 0.74rem;
+  font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .section-card h2 {
-  font-size: 1.05rem;
-  font-weight: 700;
+  font-size: 0.95rem;
+  font-weight: 600;
   letter-spacing: -0.01em;
 }
 
@@ -461,13 +463,13 @@ body {
 .channel-item-label {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 12px;
-  border-radius: 6px;
+  gap: 8px;
+  padding: 4px 8px;
+  border-radius: 5px;
   cursor: pointer;
   transition: var(--transition);
   user-select: none;
-  min-height: 42px;
+  min-height: 30px;
 }
 
 .channel-item-label:hover {
@@ -479,10 +481,11 @@ body {
 }
 
 .channel-item-label input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
+  width: 15px;
+  height: 15px;
   accent-color: var(--brand);
   cursor: pointer;
+  flex-shrink: 0;
 }
 
 .channel-item-icon {
@@ -494,12 +497,17 @@ body {
   transition: var(--transition);
 }
 
+.channel-item-icon svg {
+  width: 14px;
+  height: 14px;
+}
+
 .channel-item-label.selected .channel-item-icon {
   color: var(--brand);
 }
 
 .channel-item-name {
-  font-size: 0.88rem;
+  font-size: 0.82rem;
   color: var(--text-primary);
   font-weight: 500;
   flex: 1;
@@ -837,31 +845,42 @@ body {
 }
 
 .btn-sm {
-  padding: 5px 12px;
-  font-size: 0.8rem;
+  padding: 4px 10px;
+  font-size: 0.76rem;
+  border-radius: 6px;
 }
 
 .btn-xs {
   padding: 3px 8px;
-  font-size: 0.75rem;
+  font-size: 0.72rem;
+  border-radius: 5px;
 }
 
 .btn-lg {
-  padding: 12px 22px;
-  font-size: 0.95rem;
+  padding: 8px 18px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  border-radius: var(--radius-sm);
 }
 
 .btn-xl {
-  padding: 14px 28px;
-  font-size: 1.02rem;
-  font-weight: 700;
+  padding: 9px 20px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  letter-spacing: 0.01em;
 }
 
 .btn-hero {
-  padding: 16px 32px;
-  font-size: 1.1rem;
-  font-weight: 700;
-  width: 100%;
+  padding: 10px 24px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 0 auto;
 }
 
 .btn-icon {
@@ -2577,9 +2596,9 @@ textarea:focus {
   align-items: center;
   justify-content: space-between;
   gap: 14px;
-  padding: 14px 18px;
+  padding: 10px 14px;
   background: var(--bg-card);
-  border: 1.5px solid var(--border-strong);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
   cursor: pointer;
   transition: var(--transition);
@@ -2884,6 +2903,7 @@ textarea:focus {
   z-index: 1000;
   width: 100%;
   padding: 0 16px;
+  margin-bottom: 26px; /* 下の要素としっかりクリアランスを空け、繋がって見えるのを解消 */
   pointer-events: none;
 }
 
@@ -2891,9 +2911,9 @@ textarea:focus {
   pointer-events: auto;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  background: rgba(18, 22, 30, 0.9);
+  gap: 5px;
+  padding: 4px 8px;
+  background: rgba(18, 22, 30, 0.92);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -2909,7 +2929,7 @@ textarea:focus {
 
 :root.light-theme .dynamic-island,
 body.light-theme .dynamic-island {
-  background: rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0.94);
   border: 1px solid rgba(0, 0, 0, 0.08);
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
 }
@@ -2924,18 +2944,18 @@ body.light-theme .dynamic-island {
 .island-steps .step-tab {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 5px 11px;
+  gap: 5px;
+  padding: 4px 10px;
   border-radius: 9999px;
   background: transparent;
   border: none;
   color: var(--text-secondary);
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   font-weight: 500;
   cursor: pointer;
-  transition: var(--transition);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   user-select: none;
-  white-space: nowrap; /* 日本語の途中の折り返しを絶対に防ぐ */
+  white-space: nowrap;
   flex-shrink: 0;
 }
 
@@ -2955,10 +2975,10 @@ body.light-theme .dynamic-island {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 17px;
-  height: 17px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
-  font-size: 0.68rem;
+  font-size: 0.65rem;
   font-weight: 600;
   background: rgba(255, 255, 255, 0.18);
   flex-shrink: 0;
@@ -2971,7 +2991,7 @@ body.light-theme .dynamic-island {
 
 .island-sep {
   width: 1px;
-  height: 16px;
+  height: 14px;
   background: var(--border-subtle);
   flex-shrink: 0;
   margin: 0 2px;
@@ -2988,8 +3008,8 @@ body.light-theme .dynamic-island {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
   background: transparent;
   border: none;
@@ -3004,11 +3024,12 @@ body.light-theme .dynamic-island {
   color: var(--text-primary);
 }
 
-/* スマホ表示での崩れ防止 (Mobile Responsive) */
-@media (max-width: 600px) {
+/* スマホ表示での崩れ防止 & 表示の工夫 (Mobile: アクティブのみタイトル表示) */
+@media (max-width: 520px) {
   .island-container {
     top: 8px;
-    padding: 0 12px;
+    padding: 0 10px;
+    margin-bottom: 18px; /* スマホでもしっかり下のカードから離す */
   }
 
   .dynamic-island {
@@ -3016,16 +3037,24 @@ body.light-theme .dynamic-island {
     gap: 2px;
   }
 
-  .island-steps .step-tab {
+  /* 非アクティブなタブは文字を隠して数字バッジのみにし、超スリム化！ */
+  .island-steps .step-tab:not(.active) .step-title {
+    display: none;
+  }
+
+  .island-steps .step-tab:not(.active) {
     padding: 4px 6px;
-    font-size: 0.72rem;
-    gap: 3px;
+  }
+
+  .island-steps .step-tab.active {
+    padding: 4px 9px;
+    font-size: 0.74rem;
   }
 
   .island-steps .step-tab .step-badge {
-    width: 14px;
-    height: 14px;
-    font-size: 0.6rem;
+    width: 15px;
+    height: 15px;
+    font-size: 0.62rem;
   }
 
   .island-sep {
@@ -3052,7 +3081,7 @@ body.light-theme .dynamic-island {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 14px 16px;
+  padding: 10px 14px;
   background: var(--bg-input);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
@@ -3337,3 +3366,126 @@ body.light-theme .pv-discord-btn:hover {
   white-space: pre-wrap !important; /* 改行を100%忠実に反映 */
   word-break: break-word;
 }
+
+/* ==========================================================================
+   Multi-Channel Toolbar & Tree List (Up to 500 Channels Support)
+   ========================================================================== */
+.channel-selection-badge {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.channel-selection-badge .badge-count {
+  font-weight: 700;
+  color: var(--brand);
+}
+
+.channel-toolbar-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.channel-search-box-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 160px;
+}
+
+.channel-search-icon {
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-tertiary);
+  pointer-events: none;
+}
+
+.channel-search-input {
+  padding-left: 26px !important;
+  padding-right: 24px !important;
+  height: 28px !important;
+  font-size: 0.76rem !important;
+  border-radius: var(--radius-sm);
+}
+
+.btn-clear-search {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  font-size: 0.95rem;
+  line-height: 1;
+  padding: 2px 4px;
+}
+
+.btn-clear-search:hover {
+  color: var(--text-primary);
+}
+
+.channel-quick-btn-group {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex-wrap: wrap;
+}
+
+.channel-tree-list {
+  max-height: 280px;
+  overflow-y: auto;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 4px;
+  background: var(--bg-card);
+}
+
+.channel-chip-overflow {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  background: var(--bg-input);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-full);
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+}
+
+.channel-empty-hint {
+  padding: 14px;
+  text-align: center;
+  font-size: 0.78rem;
+  color: var(--text-tertiary);
+  background: var(--bg-input);
+  border-radius: var(--radius-sm);
+}
+
+@media (max-width: 520px) {
+  .channel-selection-badge {
+    width: 100%;
+    margin-top: -2px;
+  }
+  .channel-toolbar-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+  }
+  .channel-quick-btn-group {
+    justify-content: flex-start;
+  }
+  .channel-tree-list {
+    max-height: 220px;
+  }
+  .dt-trigger-value {
+    font-size: 0.92rem;
+  }
+  .dt-trigger-btn {
+    display: none;
+  }
+}
+

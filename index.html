@@ -19,7 +19,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20261017_v10">
+  <link rel="stylesheet" href="style.css?v=20261017_v12">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
 </head>
 <body>
@@ -85,43 +85,56 @@
       <section id="step-pane-1" class="step-pane active">
         <div class="pane-content-narrow">
 
-          <!-- 1-1. 送信先チャンネル (Discord内で選ばせるスマート設計) -->
+          <!-- 1-1. 送信先チャンネル (複数選択・最大500件対応) -->
           <div class="section-card">
             <div class="card-header-row">
               <div class="card-title-group">
                 <span class="card-step-num">A</span>
                 <h2>送信先チャンネル</h2>
               </div>
-              <span class="badge-subtle">Discord内で指定</span>
+              <span class="channel-selection-badge">
+                選択中: <strong id="selected-channel-count" class="badge-count">1</strong> チャンネル
+              </span>
             </div>
 
-            <div class="channel-destination-card">
-              <div class="channel-dest-left">
-                <span class="channel-dest-icon">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="4" y1="9" x2="20" y2="9"></line><line x1="4" y1="15" x2="20" y2="15"></line><line x1="10" y1="3" x2="8" y2="21"></line><line x1="16" y1="3" x2="14" y2="21"></line></svg>
-                </span>
-                <div class="channel-dest-info">
-                  <span class="channel-dest-name" id="current-channel-display"># test</span>
-                  <span class="channel-dest-hint">Discordコマンドで指定したチャンネルへ自動送信されます</span>
-                </div>
+            <!-- ツールバー: 検索、全選択、解除、全開閉、channels.json読込、ID追加 -->
+            <div class="channel-toolbar-row">
+              <div class="channel-search-box-wrap">
+                <svg class="channel-search-icon" viewBox="0 0 20 20" width="13" height="13" fill="currentColor">
+                  <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/>
+                </svg>
+                <input type="text" id="channel-search-input" class="form-input channel-search-input" placeholder="チャンネル名・カテゴリで検索...">
+                <button type="button" id="btn-clear-search" class="btn-clear-search" style="display:none;" title="クリア">&times;</button>
               </div>
-              <button type="button" id="btn-toggle-custom-channel" class="btn btn-ghost btn-xs">別チャンネルIDを指定</button>
+
+              <div class="channel-quick-btn-group">
+                <button type="button" id="btn-select-all-channels" class="btn btn-ghost btn-xs">すべて選択</button>
+                <button type="button" id="btn-clear-all-channels" class="btn btn-ghost btn-xs">選択解除</button>
+                <button type="button" id="btn-toggle-all-cats" class="btn btn-ghost btn-xs">全開閉</button>
+                <button type="button" id="btn-import-channels-trigger" class="btn btn-secondary btn-xs" title="Botが送信した channels.json を読み込んで全件同期">
+                  <svg viewBox="0 0 20 20" width="12" height="12" fill="currentColor"><path d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z"/></svg>
+                  channels.json読込
+                </button>
+                <input type="file" id="input-channels-file" accept=".json,application/json" style="display:none;">
+                <button type="button" id="btn-toggle-custom-channel" class="btn btn-ghost btn-xs">ID指定追加</button>
+              </div>
             </div>
 
             <!-- 別チャンネルID直接入力 (折りたたみ) -->
-            <div id="custom-channel-wrap" class="custom-channel-box mt-3" style="display: none;">
+            <div id="custom-channel-wrap" class="custom-channel-box mt-2" style="display: none;">
               <div class="custom-channel-row">
-                <input type="text" id="input-custom-channel-id" class="form-input" placeholder="変更先のチャンネルID (17〜20桁の数字) を入力..." maxlength="22">
-                <button type="button" id="btn-apply-custom-channel" class="btn btn-primary btn-xs">適用</button>
-                <button type="button" id="btn-cancel-custom-channel" class="btn btn-ghost btn-xs">キャンセル</button>
+                <input type="text" id="input-custom-channel-id" class="form-input" placeholder="追加するチャンネルID (複数ある場合はカンマや空白区切りで入力可)...">
+                <button type="button" id="btn-apply-custom-channel" class="btn btn-primary btn-xs">追加</button>
+                <button type="button" id="btn-cancel-custom-channel" class="btn btn-ghost btn-xs">閉じる</button>
               </div>
             </div>
 
-            <!-- 内部保持用バッジ (JS互換性維持) -->
-            <span id="selected-channel-count" style="display: none;">1</span>
-            <div id="selected-channels-chips" style="display: none;"></div>
-            <div id="channel-list-container" style="display: none;"></div>
-            <div id="channel-empty-hint" style="display: none;"></div>
+            <!-- 選択中チャンネルチップ -->
+            <div id="selected-channels-chips" class="selected-chips-container mt-2"></div>
+
+            <!-- チャンネル一覧 (ツリー型・アコーディオン・スクロール可能) -->
+            <div id="channel-list-container" class="channel-tree-list mt-2"></div>
+            <div id="channel-empty-hint" class="channel-empty-hint" style="display: none;">該当するチャンネルが見つかりませんでした</div>
           </div>
 
           <!-- 1-2. 送信タイミング (即時 / 日時指定 + スマホ簡単クイック選択) -->
@@ -784,6 +797,6 @@
     <div id="toast" class="toast" style="display: none;"></div>
   </div>
 
-  <script src="app.js?v=20261017_v10"></script>
+  <script src="app.js?v=20261017_v12"></script>
 </body>
 </html>
