@@ -3524,3 +3524,30 @@ body.light-theme .pv-discord-btn:hover {
   flex: 1;
 }
 
+/* API Submit Status */
+.api-submit-status {
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 0.82rem;
+  line-height: 1.45;
+  text-align: center;
+}
+
+.api-submit-status.success {
+  background: rgba(35, 165, 89, 0.12);
+  border: 1px solid rgba(35, 165, 89, 0.3);
+  color: #23a559;
+}
+
+.api-submit-status.error {
+  background: rgba(242, 63, 67, 0.12);
+  border: 1px solid rgba(242, 63, 67, 0.3);
+  color: #f23f43;
+}
+
+.btn-success {
+  background: #23a559 !important;
+  color: #ffffff !important;
+  cursor: default;
+}
+

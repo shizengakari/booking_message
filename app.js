@@ -207,6 +207,10 @@
     finalSummaryRec: $('final-summary-rec'),
     finalSummaryType: $('final-summary-type'),
     btnDownloadJsonFinal: $('btn-download-json-final'),
+    btnSubmitApiFinal: $('btn-submit-api-final'),
+    apiSubmitArea: $('api-submit-area'),
+    apiSubmitStatus: $('api-submit-status'),
+    jsonDownloadArea: $('json-download-area'),
     btnBackToStep2: $('btn-back-to-step-2'),
 
     // Import Modal
@@ -220,6 +224,10 @@
 
     toast: $('toast')
   };
+
+  // --- Active FastAPI Session State ---
+  let activeSessionId = null;
+  let activeApiUrl = '';
 
   // --- Theme Management ---
   function getSystemTheme() {
@@ -1850,6 +1858,54 @@
   function attachStep3Events() {
     el.btnBackToStep2.addEventListener('click', () => goToStep(2));
 
+    if (el.btnSubmitApiFinal) {
+      el.btnSubmitApiFinal.addEventListener('click', async () => {
+        if (!activeSessionId) {
+          alert('有効なAPIセッションが見つかりません。下の「予約ファイルをダウンロード」をご利用ください。');
+          return;
+        }
+
+        try {
+          const payload = buildFinalPayload();
+          el.btnSubmitApiFinal.disabled = true;
+          el.btnSubmitApiFinal.textContent = 'Botへ送信中...';
+          if (el.apiSubmitStatus) el.apiSubmitStatus.style.display = 'none';
+
+          const res = await fetch(`${activeApiUrl}/api/booking/session/${encodeURIComponent(activeSessionId)}/submit`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ payload })
+          });
+
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            throw new Error(data.message || data.error || `送信エラー (HTTP ${res.status})`);
+          }
+
+          el.btnSubmitApiFinal.textContent = '予約登録完了';
+          el.btnSubmitApiFinal.className = 'btn btn-success btn-hero';
+
+          if (el.apiSubmitStatus) {
+            el.apiSubmitStatus.textContent = '予約が正常に完了しました。Discord側のメッセージが自動更新されました。';
+            el.apiSubmitStatus.style.display = 'block';
+            el.apiSubmitStatus.className = 'api-submit-status success mt-2';
+          }
+
+          showToast('予約メッセージを正常に登録しました');
+        } catch (err) {
+          console.error('Submit API error:', err);
+          el.btnSubmitApiFinal.disabled = false;
+          el.btnSubmitApiFinal.textContent = '予約を確定してBotへ送信';
+          if (el.apiSubmitStatus) {
+            el.apiSubmitStatus.textContent = `送信エラー: ${err.message || '通信に失敗しました'}。下の「予約ファイルをダウンロード」から手動送信も可能です。`;
+            el.apiSubmitStatus.style.display = 'block';
+            el.apiSubmitStatus.className = 'api-submit-status error mt-2';
+          }
+          alert(`送信に失敗しました: ${err.message || '通信エラー'}`);
+        }
+      });
+    }
+
     el.btnDownloadJsonFinal.addEventListener('click', () => {
       try {
         const payload = buildFinalPayload();
@@ -2078,7 +2134,87 @@
 
   function checkHasBotSession() {
     const params = new URLSearchParams(window.location.search);
-    return Boolean(params.get('cid') || params.get('cids') || params.get('chs') || params.get('gid'));
+    return Boolean(
+      params.get('s') ||
+      params.get('session') ||
+      params.get('cid') ||
+      params.get('cids') ||
+      params.get('chs') ||
+      params.get('gid')
+    );
+  }
+
+  async function initBookingSession() {
+    const params = new URLSearchParams(window.location.search);
+    const sid = params.get('s') || params.get('session');
+    if (!sid) return false;
+
+    activeSessionId = sid;
+    const apiParam = params.get('api');
+    activeApiUrl = apiParam ? apiParam.replace(/\/+$/, '') : window.location.origin;
+
+    const banner = $('discord-sync-banner');
+    if (banner) {
+      banner.style.display = 'block';
+      const textEl = banner.querySelector('.sync-banner-text');
+      if (textEl) {
+        textEl.textContent = 'FastAPI連携中: サーバーのチャンネル一覧を同期しています...';
+      }
+    }
+
+    try {
+      const res = await fetch(`${activeApiUrl}/api/booking/session/${encodeURIComponent(sid)}`);
+      if (!res.ok) {
+        throw new Error(`セッション取得失敗 (HTTP ${res.status})`);
+      }
+      const data = await res.json();
+      if (Array.isArray(data.channels) && data.channels.length > 0) {
+        const defaultCid = data.defaultChannelId || params.get('cid');
+        state.channels = data.channels.map((c) => ({
+          id: String(c.id),
+          name: String(c.name || 'channel'),
+          category: String(c.category || '未分類'),
+          type: c.type === 'voice' ? 'voice' : 'text',
+          selected: defaultCid ? String(c.id) === String(defaultCid) : false
+        }));
+
+        if (!state.channels.some((c) => c.selected) && state.channels.length > 0) {
+          state.channels[0].selected = true;
+        }
+
+        renderChannelsList();
+        renderSelectedChips();
+
+        if (banner) {
+          const textEl = banner.querySelector('.sync-banner-text');
+          if (textEl) {
+            textEl.textContent = `FastAPI連携中: 全 ${state.channels.length} チャンネルを完全同期しました。Web上で決定するとBotへ自動登録されます。`;
+          }
+        }
+
+        // Step 3 の送信ボタン表示切替
+        if (el.apiSubmitArea) el.apiSubmitArea.style.display = 'block';
+        if (el.btnDownloadJsonFinal) {
+          el.btnDownloadJsonFinal.className = 'btn btn-secondary';
+          el.btnDownloadJsonFinal.innerHTML = `
+            <svg viewBox="0 0 20 20" width="18" height="18" fill="currentColor">
+              <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/>
+            </svg>
+            予約ファイル (.json) をダウンロード (手動用)
+          `;
+        }
+        return true;
+      }
+    } catch (e) {
+      console.warn('FastAPI session fetch failed, falling back to URL params:', e);
+      if (banner) {
+        const textEl = banner.querySelector('.sync-banner-text');
+        if (textEl) {
+          textEl.textContent = 'APIセッションの接続に失敗したため、URLパラメータまたは手動ファイル保存モードで動作します。';
+        }
+      }
+    }
+    return false;
   }
 
   function fallbackDefaultChannel() {
@@ -2119,11 +2255,12 @@
     if (el.noSessionView) el.noSessionView.style.display = 'none';
     if (el.headerSessionActions) el.headerSessionActions.style.display = 'flex';
 
-    // チャンネル解析 (独立保護)
+    // チャンネル解析 (URLパラメータパースおよびFastAPIセッション自動同期)
     try {
       parseChannelsFromUrl();
+      initBookingSession();
     } catch (e) {
-      console.error('parseChannelsFromUrl failed, falling back:', e);
+      console.error('Channel initialization failed, falling back:', e);
       fallbackDefaultChannel();
     }
 
