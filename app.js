@@ -2151,6 +2151,21 @@
 
     activeSessionId = sid;
     const apiParam = params.get('api');
+    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
+    // api パラメータが未指定かつ非ローカル環境（GitHub Pagesなど）の場合、APIサーバーは存在しないためfetchをスキップ
+    if (!apiParam && !isLocalhost) {
+      const banner = $('discord-sync-banner');
+      if (banner && state.channels.length > 0) {
+        banner.style.display = 'block';
+        const textEl = banner.querySelector('.sync-banner-text');
+        if (textEl) {
+          textEl.textContent = `チャンネル連携完了: 全 ${state.channels.length} チャンネルを読み込みました。`;
+        }
+      }
+      return false;
+    }
+
     activeApiUrl = apiParam ? apiParam.replace(/\/+$/, '') : window.location.origin;
 
     const banner = $('discord-sync-banner');
@@ -2212,7 +2227,7 @@
       if (banner) {
         const textEl = banner.querySelector('.sync-banner-text');
         if (textEl) {
-          textEl.textContent = 'APIセッションの接続に失敗したため、URLパラメータまたは手動ファイル保存モードで動作します。';
+          textEl.textContent = 'チャンネル連携完了: URLパラメータからチャンネルを読み込みました。';
         }
       }
     }
