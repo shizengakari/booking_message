@@ -206,11 +206,9 @@
     finalSummaryTime: $('final-summary-time'),
     finalSummaryRec: $('final-summary-rec'),
     finalSummaryType: $('final-summary-type'),
-    btnDownloadJsonFinal: $('btn-download-json-final'),
     btnSubmitApiFinal: $('btn-submit-api-final'),
     apiSubmitArea: $('api-submit-area'),
     apiSubmitStatus: $('api-submit-status'),
-    jsonDownloadArea: $('json-download-area'),
     btnBackToStep2: $('btn-back-to-step-2'),
 
     // Import Modal
@@ -1861,14 +1859,31 @@
     if (el.btnSubmitApiFinal) {
       el.btnSubmitApiFinal.addEventListener('click', async () => {
         if (!activeSessionId) {
-          alert('有効なAPIセッションが見つかりません。下の「予約ファイルをダウンロード」をご利用ください。');
+          alert('有効なセッションが見つかりません。Discordの /booking_message コマンドから開き直してください。');
           return;
+        }
+
+        // activeApiUrl の解決: URLクエリ -> localStorage -> ユーザー入力
+        if (!activeApiUrl) {
+          const savedApi = localStorage.getItem('booking_api_url');
+          if (savedApi) {
+            activeApiUrl = savedApi.replace(/\/+$/, '');
+          } else {
+            const inputUrl = prompt('BotのAPIサーバーURLを入力してください (例: https://your-domain.ts.net または http://localhost:8000):');
+            if (inputUrl && inputUrl.trim()) {
+              activeApiUrl = inputUrl.trim().replace(/\/+$/, '');
+              localStorage.setItem('booking_api_url', activeApiUrl);
+            } else {
+              alert('APIサーバーのURLが未設定のため、Botへの登録を中断しました。');
+              return;
+            }
+          }
         }
 
         try {
           const payload = buildFinalPayload();
           el.btnSubmitApiFinal.disabled = true;
-          el.btnSubmitApiFinal.textContent = 'Botへ送信中...';
+          el.btnSubmitApiFinal.textContent = 'Botへ登録中...';
           if (el.apiSubmitStatus) el.apiSubmitStatus.style.display = 'none';
 
           const res = await fetch(`${activeApiUrl}/api/booking/session/${encodeURIComponent(activeSessionId)}/submit`, {
@@ -1886,7 +1901,7 @@
           el.btnSubmitApiFinal.className = 'btn btn-success btn-hero';
 
           if (el.apiSubmitStatus) {
-            el.apiSubmitStatus.textContent = '予約が正常に完了しました。Discord側のメッセージが自動更新されました。';
+            el.apiSubmitStatus.textContent = '予約が正常に完了しました。Discord側のメッセージが自動更新されました。この画面は閉じて構いません。';
             el.apiSubmitStatus.style.display = 'block';
             el.apiSubmitStatus.className = 'api-submit-status success mt-2';
           }
@@ -1895,9 +1910,9 @@
         } catch (err) {
           console.error('Submit API error:', err);
           el.btnSubmitApiFinal.disabled = false;
-          el.btnSubmitApiFinal.textContent = '予約を確定してBotへ送信';
+          el.btnSubmitApiFinal.textContent = '予約を確定してBotへ登録';
           if (el.apiSubmitStatus) {
-            el.apiSubmitStatus.textContent = `送信エラー: ${err.message || '通信に失敗しました'}。下の「予約ファイルをダウンロード」から手動送信も可能です。`;
+            el.apiSubmitStatus.textContent = `送信エラー: ${err.message || '通信に失敗しました'}。APIサーバーの接続状態をご確認ください。`;
             el.apiSubmitStatus.style.display = 'block';
             el.apiSubmitStatus.className = 'api-submit-status error mt-2';
           }
@@ -1905,29 +1920,6 @@
         }
       });
     }
-
-    el.btnDownloadJsonFinal.addEventListener('click', () => {
-      try {
-        const payload = buildFinalPayload();
-        const jsonStr = JSON.stringify(payload, null, 2);
-        const blob = new Blob([jsonStr], { type: 'application/json' });
-        const now = new Date();
-        const fname = `reservation_${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}.json`;
-
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = fname;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-
-        showToast(`${fname} をダウンロードしました`);
-      } catch (e) {
-        alert(e.message || '保存に失敗しました');
-      }
-    });
   }
 
   // --- JSON File Import Modal ---
@@ -2153,8 +2145,20 @@
     const apiParam = params.get('api');
     const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
-    // api パラメータが未指定かつ非ローカル環境（GitHub Pagesなど）の場合、APIサーバーは存在しないためfetchをスキップ
-    if (!apiParam && !isLocalhost) {
+    if (apiParam) {
+      activeApiUrl = apiParam.replace(/\/+$/, '');
+      try { localStorage.setItem('booking_api_url', activeApiUrl); } catch (e) {}
+    } else if (isLocalhost) {
+      activeApiUrl = window.location.origin;
+    } else {
+      const savedApi = localStorage.getItem('booking_api_url');
+      if (savedApi) {
+        activeApiUrl = savedApi.replace(/\/+$/, '');
+      }
+    }
+
+    // API URL が取得できない場合、fetchはスキップしURL展開済みのチャンネル情報で動作
+    if (!activeApiUrl) {
       const banner = $('discord-sync-banner');
       if (banner && state.channels.length > 0) {
         banner.style.display = 'block';
@@ -2165,8 +2169,6 @@
       }
       return false;
     }
-
-    activeApiUrl = apiParam ? apiParam.replace(/\/+$/, '') : window.location.origin;
 
     const banner = $('discord-sync-banner');
     if (banner) {
@@ -2205,20 +2207,6 @@
           if (textEl) {
             textEl.textContent = `FastAPI連携中: 全 ${state.channels.length} チャンネルを完全同期しました。Web上で決定するとBotへ自動登録されます。`;
           }
-        }
-
-        // Step 3 の送信ボタン表示切替
-        if (el.apiSubmitArea) el.apiSubmitArea.style.display = 'block';
-        const guideCard = document.querySelector('.discord-guide-card');
-        if (guideCard) guideCard.style.display = 'none';
-        if (el.btnDownloadJsonFinal) {
-          el.btnDownloadJsonFinal.className = 'btn btn-secondary';
-          el.btnDownloadJsonFinal.innerHTML = `
-            <svg viewBox="0 0 20 20" width="18" height="18" fill="currentColor">
-              <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/>
-            </svg>
-            予約ファイル (.json) をダウンロード (手動用)
-          `;
         }
         return true;
       }
