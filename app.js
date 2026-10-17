@@ -1874,6 +1874,18 @@
           return;
         }
 
+        // Mixed Content 事前チェック (HTTPS環境から非暗号化HTTPへの接続遮断を防止)
+        if (window.location.protocol === 'https:' && activeApiUrl.startsWith('http://') && !activeApiUrl.includes('localhost') && !activeApiUrl.includes('127.0.0.1')) {
+          const mixedMsg = 'HTTPSのWebサイトから非暗号化HTTPサーバーへの通信はブラウザのセキュリティ仕様により遮断されます。Botの .env にて FASTAPI_PUBLIC_URL にHTTPSの公開URL (Tailscale Funnel等) を設定してください。';
+          if (el.apiSubmitStatus) {
+            el.apiSubmitStatus.textContent = mixedMsg;
+            el.apiSubmitStatus.style.display = 'block';
+            el.apiSubmitStatus.className = 'api-submit-status error mt-2';
+          }
+          alert(mixedMsg);
+          return;
+        }
+
         try {
           const payload = buildFinalPayload();
           el.btnSubmitApiFinal.disabled = true;
@@ -1906,12 +1918,22 @@
           console.error('Submit API error:', err);
           el.btnSubmitApiFinal.disabled = false;
           el.btnSubmitApiFinal.textContent = '予約を確定してBotへ登録';
+
+          let userMsg = err.message || '通信に失敗しました';
+          if (userMsg.includes('Failed to fetch') || userMsg.includes('NetworkError')) {
+            if (window.location.protocol === 'https:' && activeApiUrl.startsWith('http://')) {
+              userMsg = 'ブラウザのセキュリティ仕様 (Mixed Content) によりHTTP通信が遮断されました。Botの .env の FASTAPI_PUBLIC_URL にHTTPSの公開URL (Tailscale Funnel等) を設定してください。';
+            } else {
+              userMsg = 'APIサーバーへの接続に失敗しました (Failed to fetch)。BotおよびFastAPIサーバー (Tailscale Funnel等) が起動しているかご確認ください。';
+            }
+          }
+
           if (el.apiSubmitStatus) {
-            el.apiSubmitStatus.textContent = `送信エラー: ${err.message || '通信に失敗しました'}。APIサーバーの接続状態をご確認ください。`;
+            el.apiSubmitStatus.textContent = `送信エラー: ${userMsg}`;
             el.apiSubmitStatus.style.display = 'block';
             el.apiSubmitStatus.className = 'api-submit-status error mt-2';
           }
-          alert(`送信に失敗しました: ${err.message || '通信エラー'}`);
+          alert(`送信に失敗しました: ${userMsg}`);
         }
       });
     }
