@@ -3489,3 +3489,38 @@ body.light-theme .pv-discord-btn:hover {
   }
 }
 
+/* Discord Sync Banner */
+.channel-sync-banner {
+  padding: 8px 12px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  border-left: 3px solid var(--brand);
+  border-radius: var(--radius-sm);
+  margin-bottom: 8px;
+}
+
+.sync-banner-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.sync-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--brand);
+  background: var(--brand-subtle);
+  padding: 2px 7px;
+  border-radius: var(--radius-full);
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
+}
+
+.sync-banner-text {
+  font-size: 0.76rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  flex: 1;
+}
+

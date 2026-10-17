@@ -19,7 +19,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20261017_v12">
+  <link rel="stylesheet" href="style.css?v=20261017_v13">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
 </head>
 <body>
@@ -95,6 +95,14 @@
               <span class="channel-selection-badge">
                 選択中: <strong id="selected-channel-count" class="badge-count">1</strong> チャンネル
               </span>
+            </div>
+
+            <!-- Discord設定同期バナー -->
+            <div id="discord-sync-banner" class="channel-sync-banner">
+              <div class="sync-banner-row">
+                <span class="sync-badge">Discord連携</span>
+                <span class="sync-banner-text">送信先チャンネルはDiscord側で設定されています。変更したい場合はDiscordパネルの「送信先チャンネルを変更」から変更できます。</span>
+              </div>
             </div>
 
             <!-- ツールバー: 検索、全選択、解除、全開閉、channels.json読込、ID追加 -->
@@ -797,6 +805,6 @@
     <div id="toast" class="toast" style="display: none;"></div>
   </div>
 
-  <script src="app.js?v=20261017_v12"></script>
+  <script src="app.js?v=20261017_v13"></script>
 </body>
 </html>

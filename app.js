@@ -290,12 +290,45 @@
   // --- Channels Management (Step 1: Multi-select & 500 Channels Support) ---
   function parseChannelsFromUrl() {
     const params = new URLSearchParams(window.location.search);
+    const cidsParam = params.get('cids');
+    const cnamesParam = params.get('cnames');
     const chsToken = params.get('chs');
     const defaultCid = params.get('cid');
     const defaultCname = params.get('cname') || '一般';
 
     let loadedList = [];
+    const discordChosenIds = new Set();
 
+    // 1. Discord側で選ばれたチャンネルID群 (cids) を優先解析
+    if (cidsParam) {
+      if (cidsParam.startsWith('D_') && typeof window.pako !== 'undefined') {
+        try {
+          let b64 = cidsParam.slice(2).trim().replace(/-/g, '+').replace(/_/g, '/');
+          while (b64.length % 4) b64 += '=';
+          const binStr = atob(b64);
+          const bytes = new Uint8Array(binStr.length);
+          for (let i = 0; i < binStr.length; i++) bytes[i] = binStr.charCodeAt(i);
+          const raw = window.pako.inflate(bytes, { to: 'string' });
+          const [baseStr, deltasStr] = raw.split(':');
+          const baseId = BigInt(baseStr);
+          deltasStr.split(',').forEach((d) => {
+            const cid = (baseId + BigInt(d)).toString();
+            discordChosenIds.add(cid);
+          });
+        } catch (e) {
+          console.warn('cids delta decode error:', e);
+        }
+      } else {
+        cidsParam.split(',').forEach((s) => {
+          const clean = s.trim();
+          if (clean) discordChosenIds.add(clean);
+        });
+      }
+    } else if (defaultCid) {
+      discordChosenIds.add(String(defaultCid));
+    }
+
+    // 2. サーバー全チャンネルカタログ (chsToken) の解析
     if (chsToken && typeof window.pako !== 'undefined') {
       try {
         let b64 = chsToken.trim().replace(/-/g, '+').replace(/_/g, '/');
@@ -307,7 +340,6 @@
         const parsed = JSON.parse(jsonStr);
 
         if (parsed && parsed.v === 2 && parsed.b && Array.isArray(parsed.c) && Array.isArray(parsed.l)) {
-          // Version 2: 高圧縮デルタ + カテゴリ辞書形式 (400件以上のチャンネルに対応)
           const baseId = BigInt(parsed.b);
           const cats = parsed.c;
           loadedList = parsed.l.map(([delta, name, isVoice, catIdx]) => {
@@ -317,11 +349,10 @@
               name: String(name || 'channel'),
               category: String(cats[catIdx] || '未分類'),
               type: isVoice === 1 ? 'voice' : 'text',
-              selected: defaultCid ? cid === String(defaultCid) : false
+              selected: discordChosenIds.has(cid)
             };
           });
         } else if (Array.isArray(parsed)) {
-          // Version 1 / レガシー配列形式
           loadedList = parsed.map((c) => {
             if (Array.isArray(c)) {
               return {
@@ -329,7 +360,7 @@
                 name: String(c[1] || 'channel'),
                 category: String(c[3] || 'テキストチャンネル'),
                 type: c[2] === 1 ? 'voice' : 'text',
-                selected: defaultCid ? String(c[0]) === String(defaultCid) : false
+                selected: discordChosenIds.has(String(c[0]))
               };
             }
             return {
@@ -337,7 +368,7 @@
               name: c.name || 'channel',
               category: c.category || 'テキストチャンネル',
               type: c.type || 'text',
-              selected: defaultCid ? String(c.id) === String(defaultCid) : false
+              selected: discordChosenIds.has(String(c.id))
             };
           });
         }
@@ -346,7 +377,26 @@
       }
     }
 
-    // フォールバック（パラメータがない場合やデフォルトチャンネルの保証）
+    // 3. Discord側で指定されたチャンネルがカタログにない場合、補完
+    if (discordChosenIds.size > 0) {
+      const names = cnamesParam ? cnamesParam.split(',').map((s) => s.trim()) : [];
+      let idx = 0;
+      discordChosenIds.forEach((cid) => {
+        if (!loadedList.some((c) => c.id === cid)) {
+          const cname = names[idx] || (cid === defaultCid ? defaultCname : `ch-${cid.slice(-4)}`);
+          loadedList.unshift({
+            id: cid,
+            name: cname,
+            category: 'Discord設定',
+            type: 'text',
+            selected: true
+          });
+        }
+        idx++;
+      });
+    }
+
+    // 4. フォールバック
     if (!loadedList.length && defaultCid) {
       loadedList.push({
         id: String(defaultCid),
@@ -367,7 +417,6 @@
       });
     }
 
-    // 先頭チャンネルまたは該当チャンネルを選択状態にする
     if (!loadedList.some((c) => c.selected)) {
       loadedList[0].selected = true;
     }
@@ -377,7 +426,7 @@
     renderSelectedChips();
   }
 
-  // Botが送信した channels.json を直接読み込んで全500件完全同期
+    // Botが送信した channels.json を直接読み込んで全500件完全同期
   function loadChannelsFromFile(file) {
     if (!file) return;
     const reader = new FileReader();
@@ -2029,7 +2078,7 @@
 
   function checkHasBotSession() {
     const params = new URLSearchParams(window.location.search);
-    return Boolean(params.get('cid') || params.get('chs') || params.get('gid'));
+    return Boolean(params.get('cid') || params.get('cids') || params.get('chs') || params.get('gid'));
   }
 
   function fallbackDefaultChannel() {
