@@ -1901,7 +1901,7 @@
           el.btnSubmitApiFinal.className = 'btn btn-success btn-hero';
 
           if (el.apiSubmitStatus) {
-            el.apiSubmitStatus.textContent = '予約が正常に完了しました。Discord側のメッセージが自動更新されました。この画面は閉じて構いません。';
+            el.apiSubmitStatus.textContent = '予約が正常に完了しました。Discord側のメッセージが自動更新され、DMへ確定通知を送信しました。この画面は閉じて構いません。';
             el.apiSubmitStatus.style.display = 'block';
             el.apiSubmitStatus.className = 'api-submit-status success mt-2';
           }
