@@ -2157,49 +2157,44 @@
     activeSessionId = sid;
     const apiParam = params.get('api');
     const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    const DEFAULT_PROD_API = 'https://server.tailc932d4.ts.net';
 
     if (apiParam) {
       activeApiUrl = apiParam.replace(/\/+$/, '');
+      // HTTPS環境下でHTTP APIが指定された場合は自動的に本番HTTPS APIへ切り替え (Mixed Content防止)
+      if (window.location.protocol === 'https:' && activeApiUrl.startsWith('http://')) {
+        activeApiUrl = DEFAULT_PROD_API;
+      }
     } else if (isLocalhost) {
       activeApiUrl = window.location.origin;
     } else {
-      activeApiUrl = '';
-    }
-
-    // API URL が取得できない場合、またはMixed Contentになる場合
-    if (!activeApiUrl) {
-      const banner = $('discord-sync-banner');
-      if (banner && state.channels.length > 0) {
-        banner.style.display = 'block';
-        const textEl = banner.querySelector('.sync-banner-text');
-        if (textEl) {
-          textEl.textContent = `チャンネル連携完了: 全 ${state.channels.length} チャンネルを読み込みました。`;
-        }
-      }
-      return false;
-    }
-
-    // Mixed Content の事前チェック (HTTPS環境下でAPIが非暗号化HTTPの場合)
-    if (window.location.protocol === 'https:' && activeApiUrl.startsWith('http://')) {
-      console.warn('Mixed Content detected: HTTPS web page cannot fetch from HTTP API:', activeApiUrl);
-      return false;
+      activeApiUrl = DEFAULT_PROD_API;
     }
 
     try {
-      const res = await fetch(`${activeApiUrl}/api/booking/session/${encodeURIComponent(sid)}`);
+      const res = await fetch(`${activeApiUrl}/api/booking/session/${encodeURIComponent(sid)}`, {
+        cache: 'no-store',
+        headers: { 'Accept': 'application/json' }
+      });
       if (!res.ok) {
         throw new Error(`セッション取得失敗 (HTTP ${res.status})`);
       }
       const data = await res.json();
       if (Array.isArray(data.channels) && data.channels.length > 0) {
         const defaultCid = data.defaultChannelId || params.get('cid');
-        state.channels = data.channels.map((c) => ({
-          id: String(c.id),
-          name: String(c.name || 'channel'),
-          category: String(c.category || '未分類'),
-          type: c.type === 'voice' ? 'voice' : 'text',
-          selected: defaultCid ? String(c.id) === String(defaultCid) : false
-        }));
+        const currentSelected = new Set(state.channels.filter((c) => c.selected).map((c) => c.id));
+        if (defaultCid) currentSelected.add(String(defaultCid));
+
+        state.channels = data.channels.map((c) => {
+          const cid = String(c.id);
+          return {
+            id: cid,
+            name: String(c.name || 'channel'),
+            category: String(c.category || '未分類'),
+            type: c.type === 'voice' ? 'voice' : 'text',
+            selected: currentSelected.has(cid)
+          };
+        });
 
         if (!state.channels.some((c) => c.selected) && state.channels.length > 0) {
           state.channels[0].selected = true;
@@ -2207,6 +2202,15 @@
 
         renderChannelsList();
         renderSelectedChips();
+
+        const banner = $('discord-sync-banner');
+        if (banner) {
+          banner.style.display = 'block';
+          const textEl = banner.querySelector('.sync-banner-text');
+          if (textEl) {
+            textEl.textContent = `全チャンネル同期完了: 全 ${state.channels.length} チャンネルを読み込みました。`;
+          }
+        }
         return true;
       }
     } catch (e) {
