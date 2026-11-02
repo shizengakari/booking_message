@@ -2171,13 +2171,25 @@
       activeApiUrl = DEFAULT_PROD_API;
     }
 
+    // API前提: 初回取得時はローディングメッセージを表示
+    if (el.channelContainer && state.channels.length === 0) {
+      el.channelContainer.innerHTML = `
+        <div style="padding: 24px; text-align: center; color: var(--text-secondary);">
+          <div style="font-size: 1.2rem; margin-bottom: 8px;">⏳</div>
+          <div>Discordサーバーから全チャンネル一覧を取得中...</div>
+        </div>
+      `;
+    }
+
     try {
-      const res = await fetch(`${activeApiUrl}/api/booking/session/${encodeURIComponent(sid)}`, {
+      const fetchUrl = `${activeApiUrl}/api/booking/session/${encodeURIComponent(sid)}`;
+      console.log('Fetching booking session from API:', fetchUrl);
+      const res = await fetch(fetchUrl, {
         cache: 'no-store',
         headers: { 'Accept': 'application/json' }
       });
       if (!res.ok) {
-        throw new Error(`セッション取得失敗 (HTTP ${res.status})`);
+        throw new Error(`HTTP ${res.status}`);
       }
       const data = await res.json();
       if (Array.isArray(data.channels) && data.channels.length > 0) {
@@ -2208,13 +2220,21 @@
           banner.style.display = 'block';
           const textEl = banner.querySelector('.sync-banner-text');
           if (textEl) {
-            textEl.textContent = `全チャンネル同期完了: 全 ${state.channels.length} チャンネルを読み込みました。`;
+            textEl.textContent = `全チャンネル同期完了: 全 ${state.channels.length} チャンネルをAPIから読み込みました。`;
           }
         }
         return true;
       }
     } catch (e) {
-      console.warn('FastAPI session fetch failed, falling back to URL params:', e);
+      console.warn('FastAPI session fetch failed:', e);
+      if (el.channelContainer && state.channels.length === 0) {
+        el.channelContainer.innerHTML = `
+          <div style="padding: 16px; text-align: center; color: #f23f43; background: rgba(242,63,67,0.1); border-radius: var(--radius-sm);">
+            <div>⚠️ APIセッションの取得に失敗しました (${escapeHtml(e.message)})</div>
+            <button type="button" class="btn btn-secondary" style="margin-top: 8px; font-size: 0.8rem; padding: 4px 12px;" onclick="initBookingSession()">再試行</button>
+          </div>
+        `;
+      }
     }
     return false;
   }
