@@ -222,8 +222,10 @@
   };
 
   // --- Active FastAPI Session State ---
+  const DEFAULT_PROD_API = 'https://server.tailc932d4.ts.net';
   let activeSessionId = null;
   let activeApiUrl = '';
+  let hasApiSynced = false;
 
   // --- Theme Management ---
   function getSystemTheme() {
@@ -1852,27 +1854,14 @@
           return;
         }
 
-        // activeApiUrl の解決: Bot発行のURLクエリのみを参照 (Web側手入力・シークレット保持の完全撤廃)
+        // activeApiUrl の解決: URL指定または本番デフォルトURL
         if (!activeApiUrl) {
-          if (el.apiSubmitStatus) {
-            el.apiSubmitStatus.textContent = 'APIサーバーの接続先情報がURLに含まれていません。Discordの /booking_message コマンドから発行されたURLを開いてください。';
-            el.apiSubmitStatus.style.display = 'block';
-            el.apiSubmitStatus.className = 'api-submit-status error mt-2';
-          }
-          alert('APIサーバー情報が見つかりません。Discordの /booking_message コマンドから発行されたリンクをご利用ください。');
-          return;
+          activeApiUrl = DEFAULT_PROD_API;
         }
 
-        // Mixed Content 事前チェック (HTTPS環境から非暗号化HTTPへの接続遮断を防止)
+        // HTTPS環境下でHTTP APIが指定されていた場合は本番HTTPS APIへ安全に自動置換 (Mixed Content防止)
         if (window.location.protocol === 'https:' && activeApiUrl.startsWith('http://')) {
-          const mixedMsg = 'HTTPSのWebサイトから非暗号化HTTPサーバーへの通信はブラウザのセキュリティ仕様 (Mixed Content) により遮断されます。Botの .env にて FASTAPI_PUBLIC_URL にHTTPSの公開URL (Tailscale Funnel等) を設定してください。';
-          if (el.apiSubmitStatus) {
-            el.apiSubmitStatus.textContent = mixedMsg;
-            el.apiSubmitStatus.style.display = 'block';
-            el.apiSubmitStatus.className = 'api-submit-status error mt-2';
-          }
-          alert(mixedMsg);
-          return;
+          activeApiUrl = DEFAULT_PROD_API;
         }
 
         try {
@@ -2157,7 +2146,6 @@
     activeSessionId = sid;
     const apiParam = params.get('api');
     const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    const DEFAULT_PROD_API = 'https://server.tailc932d4.ts.net';
 
     if (apiParam) {
       activeApiUrl = apiParam.replace(/\/+$/, '');
@@ -2171,12 +2159,13 @@
       activeApiUrl = DEFAULT_PROD_API;
     }
 
-    // API前提: 初回取得時はローディングメッセージを表示
-    if (el.channelContainer && state.channels.length === 0) {
+    // API前提: まだAPI同期が完了していない場合はローディングメッセージを表示
+    if (el.channelContainer && !hasApiSynced) {
       el.channelContainer.innerHTML = `
-        <div style="padding: 24px; text-align: center; color: var(--text-secondary);">
-          <div style="font-size: 1.2rem; margin-bottom: 8px;">⏳</div>
-          <div>Discordサーバーから全チャンネル一覧を取得中...</div>
+        <div style="padding: 28px 16px; text-align: center; color: var(--text-secondary);">
+          <div style="font-size: 1.8rem; margin-bottom: 8px;">⏳</div>
+          <div style="font-weight: 600; font-size: 1.05rem; margin-bottom: 6px;">全チャンネル一覧を取得中...</div>
+          <div style="font-size: 0.85rem; color: var(--text-muted);">Discordサーバーから全チャンネル情報を同期しています</div>
         </div>
       `;
     }
@@ -2193,6 +2182,7 @@
       }
       const data = await res.json();
       if (Array.isArray(data.channels) && data.channels.length > 0) {
+        hasApiSynced = true;
         const defaultCid = data.defaultChannelId || params.get('cid');
         const currentSelected = new Set(state.channels.filter((c) => c.selected).map((c) => c.id));
         if (defaultCid) currentSelected.add(String(defaultCid));
@@ -2220,24 +2210,29 @@
           banner.style.display = 'block';
           const textEl = banner.querySelector('.sync-banner-text');
           if (textEl) {
-            textEl.textContent = `全チャンネル同期完了: 全 ${state.channels.length} チャンネルをAPIから読み込みました。`;
+            textEl.textContent = `全チャンネル同期完了: サーバー内の全 ${state.channels.length} チャンネルを読み込みました。`;
           }
         }
         return true;
       }
     } catch (e) {
       console.warn('FastAPI session fetch failed:', e);
-      if (el.channelContainer && state.channels.length === 0) {
+      if (el.channelContainer && !hasApiSynced) {
         el.channelContainer.innerHTML = `
-          <div style="padding: 16px; text-align: center; color: #f23f43; background: rgba(242,63,67,0.1); border-radius: var(--radius-sm);">
-            <div>⚠️ APIセッションの取得に失敗しました (${escapeHtml(e.message)})</div>
-            <button type="button" class="btn btn-secondary" style="margin-top: 8px; font-size: 0.8rem; padding: 4px 12px;" onclick="initBookingSession()">再試行</button>
+          <div style="padding: 16px; text-align: center; color: #f23f43; background: rgba(242,63,67,0.1); border-radius: var(--radius-sm); margin: 8px 0;">
+            <div style="font-weight: 600; font-size: 0.95rem;">⚠️ チャンネル一覧の同期に失敗しました (${escapeHtml(e.message)})</div>
+            <div style="font-size: 0.8rem; margin-top: 4px; color: var(--text-secondary);">接続先: ${escapeHtml(activeApiUrl)}</div>
+            <div style="font-size: 0.78rem; margin-top: 4px; color: var(--text-muted);">Botの起動状態およびFastAPIセッションの有効期限をご確認ください。</div>
+            <button type="button" class="btn btn-secondary" style="margin-top: 10px; font-size: 0.85rem; padding: 6px 16px;" onclick="window.initBookingSession()">再試行</button>
           </div>
         `;
       }
     }
     return false;
   }
+
+  // グローバル再試行用
+  window.initBookingSession = initBookingSession;
 
   function fallbackDefaultChannel() {
     const params = new URLSearchParams(window.location.search);
