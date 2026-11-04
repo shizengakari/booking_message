@@ -223,9 +223,43 @@
 
   // --- Active FastAPI Session State ---
   const DEFAULT_PROD_API = 'https://server.tailc932d4.ts.net';
+  const OBSOLETE_API_HOSTS = ['asus-tuf-gaming-a15.tailc932d4.ts.net'];
   let activeSessionId = null;
   let activeApiUrl = '';
   let hasApiSynced = false;
+
+  function normalizeApiBaseUrl(rawUrl) {
+    if (!rawUrl || typeof rawUrl !== 'string') return DEFAULT_PROD_API;
+    const cleaned = rawUrl.trim().replace(/\/+$/, '');
+    if (!cleaned) return DEFAULT_PROD_API;
+    const lower = cleaned.toLowerCase();
+    if (OBSOLETE_API_HOSTS.some((h) => lower.includes(h))) {
+      return DEFAULT_PROD_API;
+    }
+    if (window.location.protocol === 'https:' && lower.startsWith('http://')) {
+      return DEFAULT_PROD_API;
+    }
+    return cleaned;
+  }
+
+  function getApiCandidateList(preferredUrl) {
+    const primary = normalizeApiBaseUrl(preferredUrl);
+    const list = [primary];
+    if (primary !== DEFAULT_PROD_API) {
+      list.push(DEFAULT_PROD_API);
+    }
+    return list;
+  }
+
+  async function fetchWithTimeout(url, options = {}, timeoutMs = 10000) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      return await fetch(url, { ...options, signal: controller.signal });
+    } finally {
+      clearTimeout(timer);
+    }
+  }
 
   // --- Theme Management ---
   function getSystemTheme() {
@@ -1854,15 +1888,9 @@
           return;
         }
 
-        // activeApiUrl の解決: URL指定または本番デフォルトURL
-        if (!activeApiUrl) {
-          activeApiUrl = DEFAULT_PROD_API;
-        }
-
-        // HTTPS環境下でHTTP APIが指定されていた場合は本番HTTPS APIへ安全に自動置換 (Mixed Content防止)
-        if (window.location.protocol === 'https:' && activeApiUrl.startsWith('http://')) {
-          activeApiUrl = DEFAULT_PROD_API;
-        }
+        // activeApiUrl の解決・正規化 (旧ホスト名やHTTP指定を自動補正し、フォールバック候補を用意)
+        activeApiUrl = normalizeApiBaseUrl(activeApiUrl);
+        const candidates = getApiCandidateList(activeApiUrl);
 
         try {
           const payload = buildFinalPayload();
@@ -1870,11 +1898,29 @@
           el.btnSubmitApiFinal.textContent = 'Botへ登録中...';
           if (el.apiSubmitStatus) el.apiSubmitStatus.style.display = 'none';
 
-          const res = await fetch(`${activeApiUrl}/api/booking/session/${encodeURIComponent(activeSessionId)}/submit`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ payload })
-          });
+          let res = null;
+          let lastErr = null;
+          for (const baseUrl of candidates) {
+            try {
+              res = await fetchWithTimeout(
+                `${baseUrl}/api/booking/session/${encodeURIComponent(activeSessionId)}/submit`,
+                {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ payload })
+                },
+                15000
+              );
+              activeApiUrl = baseUrl;
+              break;
+            } catch (fetchErr) {
+              lastErr = fetchErr;
+              console.warn(`Submit API attempt failed for ${baseUrl}:`, fetchErr);
+            }
+          }
+          if (!res) {
+            throw lastErr || new Error('Failed to fetch');
+          }
 
           const data = await res.json().catch(() => ({}));
           if (!res.ok) {
@@ -2148,10 +2194,13 @@
     const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
     if (apiParam) {
-      activeApiUrl = apiParam.replace(/\/+$/, '');
-      // HTTPS環境下でHTTP APIが指定された場合は自動的に本番HTTPS APIへ切り替え (Mixed Content防止)
-      if (window.location.protocol === 'https:' && activeApiUrl.startsWith('http://')) {
-        activeApiUrl = DEFAULT_PROD_API;
+      activeApiUrl = normalizeApiBaseUrl(apiParam);
+      if (activeApiUrl !== apiParam.replace(/\/+$/, '')) {
+        try {
+          params.set('api', activeApiUrl);
+          const cleanSearch = params.toString();
+          window.history.replaceState(null, '', `${window.location.pathname}?${cleanSearch}`);
+        } catch (_) {}
       }
     } else if (isLocalhost) {
       activeApiUrl = window.location.origin;
@@ -2170,63 +2219,72 @@
       `;
     }
 
-    try {
-      const fetchUrl = `${activeApiUrl}/api/booking/session/${encodeURIComponent(sid)}`;
-      console.log('Fetching booking session from API:', fetchUrl);
-      const res = await fetch(fetchUrl, {
-        cache: 'no-store',
-        headers: { 'Accept': 'application/json' }
-      });
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}`);
-      }
-      const data = await res.json();
-      if (Array.isArray(data.channels) && data.channels.length > 0) {
-        hasApiSynced = true;
-        const defaultCid = data.defaultChannelId || params.get('cid');
-        const currentSelected = new Set(state.channels.filter((c) => c.selected).map((c) => c.id));
-        if (defaultCid) currentSelected.add(String(defaultCid));
+    const candidates = isLocalhost ? [activeApiUrl] : getApiCandidateList(activeApiUrl);
+    let lastError = null;
 
-        state.channels = data.channels.map((c) => {
-          const cid = String(c.id);
-          return {
-            id: cid,
-            name: String(c.name || 'channel'),
-            category: String(c.category || '未分類'),
-            type: c.type === 'voice' ? 'voice' : 'text',
-            selected: currentSelected.has(cid)
-          };
-        });
-
-        if (!state.channels.some((c) => c.selected) && state.channels.length > 0) {
-          state.channels[0].selected = true;
+    for (const candidateUrl of candidates) {
+      try {
+        const fetchUrl = `${candidateUrl}/api/booking/session/${encodeURIComponent(sid)}`;
+        console.log('Fetching booking session from API:', fetchUrl);
+        const res = await fetchWithTimeout(fetchUrl, {
+          cache: 'no-store',
+          headers: { 'Accept': 'application/json' }
+        }, 10000);
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
         }
+        const data = await res.json();
+        activeApiUrl = candidateUrl;
+        if (Array.isArray(data.channels) && data.channels.length > 0) {
+          hasApiSynced = true;
+          const defaultCid = data.defaultChannelId || params.get('cid');
+          const currentSelected = new Set(state.channels.filter((c) => c.selected).map((c) => c.id));
+          if (defaultCid) currentSelected.add(String(defaultCid));
 
-        renderChannelsList();
-        renderSelectedChips();
+          state.channels = data.channels.map((c) => {
+            const cid = String(c.id);
+            return {
+              id: cid,
+              name: String(c.name || 'channel'),
+              category: String(c.category || '未分類'),
+              type: c.type === 'voice' ? 'voice' : 'text',
+              selected: currentSelected.has(cid)
+            };
+          });
 
-        const banner = $('discord-sync-banner');
-        if (banner) {
-          banner.style.display = 'block';
-          const textEl = banner.querySelector('.sync-banner-text');
-          if (textEl) {
-            textEl.textContent = `全チャンネル同期完了: サーバー内の全 ${state.channels.length} チャンネルを読み込みました。`;
+          if (!state.channels.some((c) => c.selected) && state.channels.length > 0) {
+            state.channels[0].selected = true;
           }
+
+          renderChannelsList();
+          renderSelectedChips();
+
+          const banner = $('discord-sync-banner');
+          if (banner) {
+            banner.style.display = 'block';
+            const textEl = banner.querySelector('.sync-banner-text');
+            if (textEl) {
+              textEl.textContent = `全チャンネル同期完了: サーバー内の全 ${state.channels.length} チャンネルを読み込みました。`;
+            }
+          }
+          return true;
         }
-        return true;
+      } catch (e) {
+        lastError = e;
+        console.warn(`FastAPI session fetch failed for ${candidateUrl}:`, e);
       }
-    } catch (e) {
-      console.warn('FastAPI session fetch failed:', e);
-      if (el.channelContainer && !hasApiSynced) {
-        el.channelContainer.innerHTML = `
-          <div style="padding: 16px; text-align: center; color: #f23f43; background: rgba(242,63,67,0.1); border-radius: var(--radius-sm); margin: 8px 0;">
-            <div style="font-weight: 600; font-size: 0.95rem;">⚠️ チャンネル一覧の同期に失敗しました (${escapeHtml(e.message)})</div>
-            <div style="font-size: 0.8rem; margin-top: 4px; color: var(--text-secondary);">接続先: ${escapeHtml(activeApiUrl)}</div>
-            <div style="font-size: 0.78rem; margin-top: 4px; color: var(--text-muted);">Botの起動状態およびFastAPIセッションの有効期限をご確認ください。</div>
-            <button type="button" class="btn btn-secondary" style="margin-top: 10px; font-size: 0.85rem; padding: 6px 16px;" onclick="window.initBookingSession()">再試行</button>
-          </div>
-        `;
-      }
+    }
+
+    if (lastError && el.channelContainer && !hasApiSynced) {
+      const errMsg = lastError.name === 'AbortError' ? '接続タイムアウト' : (lastError.message || 'Failed to fetch');
+      el.channelContainer.innerHTML = `
+        <div style="padding: 16px; text-align: center; color: #f23f43; background: rgba(242,63,67,0.1); border-radius: var(--radius-sm); margin: 8px 0;">
+          <div style="font-weight: 600; font-size: 0.95rem;">⚠️ チャンネル一覧の同期に失敗しました (${escapeHtml(errMsg)})</div>
+          <div style="font-size: 0.8rem; margin-top: 4px; color: var(--text-secondary);">接続先: ${escapeHtml(activeApiUrl)}</div>
+          <div style="font-size: 0.78rem; margin-top: 4px; color: var(--text-muted);">Botの起動状態およびFastAPIセッションの有効期限をご確認ください。</div>
+          <button type="button" class="btn btn-secondary" style="margin-top: 10px; font-size: 0.85rem; padding: 6px 16px;" onclick="window.initBookingSession()">再試行</button>
+        </div>
+      `;
     }
     return false;
   }
