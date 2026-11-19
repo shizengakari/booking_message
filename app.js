@@ -222,8 +222,11 @@
   };
 
   // --- Active FastAPI Session State ---
-  const DEFAULT_PROD_API = 'https://server.tailc932d4.ts.net';
-  const OBSOLETE_API_HOSTS = ['asus-tuf-gaming-a15.tailc932d4.ts.net'];
+  const DEFAULT_PROD_API = 'https://debian.tailc932d4.ts.net';
+  const OBSOLETE_API_HOSTS = [
+    'asus-tuf-gaming-a15.tailc932d4.ts.net',
+    'server.tailc932d4.ts.net'
+  ];
   let activeSessionId = null;
   let activeApiUrl = '';
   let hasApiSynced = false;
